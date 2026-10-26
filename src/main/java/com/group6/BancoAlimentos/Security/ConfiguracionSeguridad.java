@@ -32,6 +32,8 @@ public class ConfiguracionSeguridad {
                         .requestMatchers("/api/auth/login", "/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").hasRole("user_deposito")
+                        .requestMatchers(HttpMethod.POST, "/api/remitos", "/api/remitos/**")
+                        .hasRole("user_deposito")
                         .requestMatchers("/api/auth/yo").authenticated()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
