@@ -34,6 +34,8 @@ public class ConfiguracionSeguridad {
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").hasRole("user_deposito")
                         .requestMatchers(HttpMethod.POST, "/api/remitos", "/api/remitos/**")
                         .hasRole("user_deposito")
+                        .requestMatchers(HttpMethod.GET, "/api/notificaciones")
+                        .hasRole("user_deposito")
                         .requestMatchers("/api/auth/yo").authenticated()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())

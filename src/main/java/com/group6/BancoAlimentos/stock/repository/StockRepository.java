@@ -1,7 +1,9 @@
 package com.group6.BancoAlimentos.stock.repository;
 
 import com.group6.BancoAlimentos.stock.modelo.Stock;
+import com.group6.BancoAlimentos.stock.modelo.EstadoStock;
 import jakarta.persistence.LockModeType;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -16,6 +18,12 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
     Optional<Stock> findByProductoIdAndFechaVencimiento(Long productoId, LocalDate fechaVencimiento);
 
     Optional<Stock> findByProductoIdAndFechaVencimientoIsNull(Long productoId);
+
+    List<Stock> findByFechaVencimientoLessThanEqualAndCantidadDisponibleGreaterThanOrderByIdAsc(
+            LocalDate fechaVencimiento, BigDecimal cantidadDisponible);
+
+    List<Stock> findByFechaVencimientoBetweenAndCantidadDisponibleGreaterThanOrderByIdAsc(
+            LocalDate fechaDesde, LocalDate fechaHasta, BigDecimal cantidadDisponible);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select stock from Stock stock where stock.id in :ids order by stock.id")
