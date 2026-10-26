@@ -1,0 +1,544 @@
+openapi: 3.1.0
+info:
+  title: API de banco de alimentos
+  version: 1.0.0
+  description: Contrato de consulta de inventario, autenticación y entrega por remito.
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+tags:
+  - name: Autenticacion
+    description: Inicio de sesión y emisión del token de acceso.
+  - name: Remitos
+    description: Preparación, consulta y confirmación de entregas.
+  - name: Detalles de remito
+    description: Selección de existencias y cantidades para un borrador.
+  - name: Productos
+    description: Consulta del catálogo de productos.
+  - name: Stock
+    description: Consulta de existencias separadas por vencimiento.
+  - name: Instituciones
+    description: Consulta de instituciones y su estado de pago.
+  - name: Facturas
+    description: Consulta de facturas, sin operaciones de modificación.
+  - name: Notificaciones
+    description: Avisos de vencimiento visibles para depósito.
+paths:
+  /auth/login:
+    post:
+      tags: [Autenticacion]
+      operationId: iniciarSesion
+      summary: Iniciar sesión y obtener un token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginSolicitud"
+      responses:
+        "200":
+          description: Autenticación correcta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenRespuesta"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+  /remitos:
+    get:
+      tags: [Remitos]
+      operationId: listarRemitos
+      summary: Listar remitos visibles para el usuario
+      description: Depósito puede filtrar todos los remitos; institucional solo los de su institución.
+      x-roles: [user_deposito, user_institucional]
+      parameters:
+        - $ref: "#/components/parameters/InstitucionId"
+        - name: fechaDesde
+          in: query
+          schema: { type: string, format: date }
+        - name: fechaHasta
+          in: query
+          schema: { type: string, format: date }
+        - name: estado
+          in: query
+          schema: { $ref: "#/components/schemas/EstadoRemito" }
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página de remitos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaRemitos"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+    post:
+      tags: [Remitos]
+      operationId: crearBorradorRemito
+      summary: Crear un borrador de remito
+      description: Requiere el rol user_deposito. Una institución en deuda es válida.
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearRemito"
+      responses:
+        "201":
+          description: Borrador creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Remito"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+  /remitos/{remitoId}:
+    get:
+      tags: [Remitos]
+      operationId: consultarRemito
+      summary: Consultar un remito visible para el usuario
+      x-roles: [user_deposito, user_institucional]
+      parameters:
+        - $ref: "#/components/parameters/RemitoId"
+      responses:
+        "200":
+          description: Remito y detalles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Remito"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+  /remitos/{remitoId}/detalles:
+    post:
+      tags: [Detalles de remito]
+      operationId: agregarDetalleRemito
+      summary: Agregar un detalle al borrador
+      description: El depósito elige explícitamente la existencia y vencimiento.
+      x-roles: [user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/RemitoId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgregarDetalle"
+      responses:
+        "201":
+          description: Detalle agregado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetalleRemito"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+  /remitos/{remitoId}/confirmacion:
+    post:
+      tags: [Remitos]
+      operationId: confirmarRemito
+      summary: Confirmar un remito y descontar todo su stock
+      description: Revalida todas las líneas y confirma o rechaza el conjunto de forma atómica.
+      x-roles: [user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/RemitoId"
+      responses:
+        "200":
+          description: Remito confirmado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Remito"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+  /productos:
+    get:
+      tags: [Productos]
+      operationId: listarProductos
+      summary: Filtrar productos
+      x-roles: [user_deposito]
+      parameters:
+        - name: nombre
+          in: query
+          schema: { type: string }
+        - name: activo
+          in: query
+          schema: { type: boolean }
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página de productos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaProductos"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+  /stock:
+    get:
+      tags: [Stock]
+      operationId: listarExistencias
+      summary: Filtrar existencias por producto, vencimiento y estado
+      x-roles: [user_deposito]
+      parameters:
+        - name: productoId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: fechaVencimiento
+          in: query
+          schema: { type: string, format: date }
+        - name: estado
+          in: query
+          schema: { $ref: "#/components/schemas/EstadoStock" }
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página de existencias
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaStock"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+  /instituciones:
+    get:
+      tags: [Instituciones]
+      operationId: listarInstituciones
+      summary: Filtrar instituciones
+      description: Permitido a user_deposito y user_tesoreria.
+      x-roles: [user_deposito, user_tesoreria]
+      parameters:
+        - name: nombre
+          in: query
+          schema: { type: string }
+        - name: estadoPago
+          in: query
+          schema: { $ref: "#/components/schemas/EstadoPago" }
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página de instituciones
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaInstituciones"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+  /facturas:
+    get:
+      tags: [Facturas]
+      operationId: listarFacturas
+      summary: Consultar y filtrar facturas en modo de solo lectura
+      x-roles: [user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/InstitucionId"
+        - name: fechaDesde
+          in: query
+          schema: { type: string, format: date }
+        - name: fechaHasta
+          in: query
+          schema: { type: string, format: date }
+        - name: estado
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página de facturas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaFacturas"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+  /notificaciones:
+    get:
+      tags: [Notificaciones]
+      operationId: listarNotificaciones
+      summary: Consultar avisos almacenados para depósito
+      x-roles: [user_deposito]
+      parameters:
+        - name: tipo
+          in: query
+          schema: { $ref: "#/components/schemas/TipoNotificacion" }
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página de avisos de depósito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaNotificaciones"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    RemitoId:
+      name: remitoId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    InstitucionId:
+      name: institucionId
+      in: query
+      schema: { type: integer, format: int64 }
+    Pagina:
+      name: pagina
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Tamano:
+      name: tamano
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  responses:
+    ErrorSolicitud:
+      description: Solicitud inválida
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ErrorNoAutenticado:
+      description: Falta autenticación o el token no es válido
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ErrorProhibido:
+      description: El rol no está autorizado para esta operación
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ErrorNoEncontrado:
+      description: El recurso no existe o no es visible para el usuario
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ErrorReglaNegocio:
+      description: Regla de negocio incumplida
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    LoginSolicitud:
+      type: object
+      required: [nombreUsuario, clave]
+      properties:
+        nombreUsuario: { type: string }
+        clave: { type: string, format: password }
+    TokenRespuesta:
+      type: object
+      required: [token, tipo, expiraEnSegundos, roles]
+      properties:
+        token: { type: string }
+        tipo: { type: string, const: Bearer }
+        expiraEnSegundos: { type: integer }
+        roles:
+          type: array
+          items: { $ref: "#/components/schemas/Rol" }
+    Rol:
+      type: string
+      enum: [user_deposito, user_institucional, user_tesoreria]
+    CrearRemito:
+      type: object
+      required: [institucionId, fechaEntrega]
+      properties:
+        institucionId: { type: integer, format: int64 }
+        fechaEntrega: { type: string, format: date }
+    AgregarDetalle:
+      type: object
+      required: [stockId, cantidad]
+      properties:
+        stockId: { type: integer, format: int64, description: Existencia elegida manualmente }
+        cantidad: { type: number, exclusiveMinimum: 0 }
+    EstadoRemito:
+      type: string
+      enum: [BORRADOR, CONFIRMADO]
+    EstadoStock:
+      type: string
+      enum: [DISPONIBLE, VENCIDO, SIN_VENCIMIENTO]
+    EstadoPago:
+      type: string
+      enum: [AL_DIA, EN_DEUDA, PARTICULAR]
+    TipoNotificacion:
+      type: string
+      enum: [POR_VENCER, VENCIDO]
+    Remito:
+      type: object
+      required: [id, institucionId, institucionNombre, institucionDomicilio, fechaEntrega, estado, detalles]
+      properties:
+        id: { type: integer, format: int64 }
+        institucionId: { type: integer, format: int64 }
+        institucionNombre: { type: string }
+        institucionDomicilio: { type: string }
+        fechaEntrega: { type: string, format: date }
+        estado: { $ref: "#/components/schemas/EstadoRemito" }
+        detalles:
+          type: array
+          items: { $ref: "#/components/schemas/DetalleRemito" }
+    DetalleRemito:
+      type: object
+      required: [id, productoId, productoNombre, stockId, fechaVencimiento, cantidad]
+      properties:
+        id: { type: integer, format: int64 }
+        productoId: { type: integer, format: int64 }
+        productoNombre: { type: string }
+        stockId: { type: integer, format: int64 }
+        fechaVencimiento: { type: string, format: date }
+        cantidad: { type: number }
+    Producto:
+      type: object
+      required: [id, nombre, unidadMedida, activo]
+      properties:
+        id: { type: integer, format: int64 }
+        nombre: { type: string }
+        descripcion: { type: string }
+        unidadMedida: { type: string }
+        activo: { type: boolean }
+    Existencia:
+      type: object
+      required: [id, productoId, productoNombre, cantidadDisponible, estado]
+      properties:
+        id: { type: integer, format: int64 }
+        productoId: { type: integer, format: int64 }
+        productoNombre: { type: string }
+        fechaVencimiento: { type: [string, "null"], format: date }
+        cantidadDisponible: { type: number, minimum: 0 }
+        estado: { $ref: "#/components/schemas/EstadoStock" }
+    Institucion:
+      type: object
+      required: [id, nombre, domicilio, estadoPago, activa]
+      properties:
+        id: { type: integer, format: int64 }
+        nombre: { type: string }
+        domicilio: { type: string }
+        estadoPago: { $ref: "#/components/schemas/EstadoPago" }
+        activa: { type: boolean }
+    FacturaConsulta:
+      type: object
+      required: [id, numero, institucionId, fecha, estado, importe]
+      properties:
+        id: { type: integer, format: int64 }
+        numero: { type: string }
+        institucionId: { type: integer, format: int64 }
+        fecha: { type: string, format: date }
+        estado: { type: string }
+        importe: { type: number }
+    Notificacion:
+      type: object
+      required: [id, tipo, fechaCreacion, mensaje]
+      properties:
+        id: { type: integer, format: int64 }
+        tipo: { $ref: "#/components/schemas/TipoNotificacion" }
+        fechaCreacion: { type: string, format: date-time }
+        mensaje: { type: string }
+    PaginaRemitos:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/Remito" } }
+    PaginaProductos:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/Producto" } }
+    PaginaStock:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/Existencia" } }
+    PaginaInstituciones:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/Institucion" } }
+    PaginaFacturas:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/FacturaConsulta" } }
+    PaginaNotificaciones:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/Notificacion" } }
+    PaginaBase:
+      type: object
+      required: [pagina, tamano, totalElementos, totalPaginas]
+      properties:
+        pagina: { type: integer }
+        tamano: { type: integer }
+        totalElementos: { type: integer, format: int64 }
+        totalPaginas: { type: integer }
+    Error:
+      type: object
+      required: [fechaHora, estado, codigo, mensaje, ruta, erroresCampo]
+      properties:
+        fechaHora: { type: string, format: date-time }
+        estado: { type: integer }
+        codigo: { type: string }
+        mensaje: { type: string }
+        ruta: { type: string }
+        erroresCampo:
+          type: array
+          items:
+            type: object
+            required: [campo, mensaje]
+            properties:
+              campo: { type: string }
+              mensaje: { type: string }
