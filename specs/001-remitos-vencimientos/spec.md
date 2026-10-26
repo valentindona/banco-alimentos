@@ -8,6 +8,12 @@
 
 **Input**: User description: "Permitir al personal del depósito registrar entregas de mercadería a instituciones mediante remitos, seleccionando manualmente el vencimiento del stock y evitando toda entrega de productos vencidos. Avisar en pantalla al depósito cuando haya stock próximo a vencer (3 días o menos) o vencido. Al confirmar, descontar exactamente las cantidades del vencimiento elegido. Permitir consultar y filtrar remitos, productos, stock e instituciones según permisos; depósito también consulta facturas y tesorería consulta instituciones. Una institución en deuda puede recibir entregas. No cambiar donaciones ni facturación."
 
+## Clarifications
+
+### Session 2026-10-26
+
+- Q: ¿Qué información deben poder consultar los usuarios institucionales y los de tesorería, además de los permisos ya especificados? → A: Institucionales consultan solo los remitos de su institución; tesorería consulta solo instituciones; depósito conserva las consultas ya indicadas.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Registrar y confirmar una entrega segura (Priority: P1)
@@ -88,17 +94,17 @@ stock vencido no puede incluirse en un remito.
 
 ### User Story 3 - Consultar y filtrar información relacionada (Priority: P3)
 
-Los usuarios autorizados consultan remitos, productos, stock e instituciones con filtros
-pertinentes a cada información. El personal de depósito también consulta instituciones
-y facturas; tesorería consulta instituciones. Las personas usuarias institucionales
-consultan información relacionada con su propia institución, sin registrar remitos.
+El personal de depósito consulta y filtra remitos, productos, stock, instituciones y
+facturas. Tesorería consulta y filtra instituciones. Las personas usuarias
+institucionales consultan únicamente los remitos de su propia institución, sin
+registrarlos ni acceder a otros listados.
 
 **Why this priority**: La consulta facilita el seguimiento de las entregas sin ampliar
 las facultades de registro del personal que no pertenece al depósito.
 
-**Independent Test**: Ingresar con cada rol, aplicar filtros a la información que le
-corresponde y comprobar que obtiene resultados coincidentes; intentar registrar un
-remito con cada rol no autorizado y verificar que se deniega el acceso.
+**Independent Test**: Ingresar con cada rol, aplicar filtros a la información permitida
+y comprobar que obtiene resultados coincidentes; verificar que cada rol no puede
+consultar listados de otro rol ni registrar remitos si no pertenece a depósito.
 
 **Acceptance Scenarios**:
 
@@ -108,11 +114,12 @@ remito con cada rol no autorizado y verificar que se deniega el acceso.
    consultarse por páginas.
 2. **Given** instituciones y facturas registradas, **When** depósito consulta y filtra
    esos listados, **Then** ve únicamente los resultados que coinciden con sus filtros.
-3. **Given** instituciones registradas, **When** tesorería consulta y filtra instituciones,
-   **Then** ve las instituciones coincidentes.
+3. **Given** instituciones registradas, **When** tesorería consulta instituciones,
+   **Then** ve las instituciones coincidentes y no accede a remitos, productos, stock ni
+   facturas.
 4. **Given** remitos asociados a distintas instituciones, **When** una persona
-   institucional consulta sus entregas, **Then** solo ve información de su propia
-   institución.
+   institucional consulta sus entregas, **Then** solo ve los remitos de su propia
+   institución y no accede a productos, stock, facturas ni datos de otras instituciones.
 5. **Given** un usuario de tesorería o institucional, **When** intenta registrar un
    remito, **Then** el sistema deniega la operación y no crea ni modifica remitos.
 
@@ -169,14 +176,15 @@ remito con cada rol no autorizado y verificar que se deniega el acceso.
 - **FR-011**: Desde la fecha de vencimiento inclusive, el sistema MUST tratar la
   existencia como vencida, bloquear su selección para entregas y mostrar a depósito un
   aviso de stock vencido.
-- **FR-012**: El sistema MUST permitir filtrar remitos por institución, fecha y estado;
-  productos por sus propios datos; y stock por producto, vencimiento y estado. Los
-  listados principales MUST ofrecer navegación paginada.
+- **FR-012**: El personal de depósito MUST poder filtrar remitos por institución, fecha
+  y estado; productos por sus propios datos; y stock por producto, vencimiento y estado.
+  Los listados principales MUST ofrecer navegación paginada.
 - **FR-013**: El personal de depósito MUST poder consultar y filtrar instituciones y
   facturas. Tesorería MUST poder consultar y filtrar instituciones.
-- **FR-014**: Los usuarios institucionales MUST poder consultar información de remitos
-  relacionada exclusivamente con su institución asociada y MUST NOT ver datos de otras
-  instituciones mediante esta consulta.
+- **FR-014**: Los usuarios institucionales MUST poder consultar únicamente los remitos
+  de su institución asociada y MUST NOT consultar productos, stock, facturas ni datos
+  de otras instituciones. Tesorería MUST poder consultar únicamente instituciones y
+  MUST NOT consultar remitos, productos, stock ni facturas.
 - **FR-015**: El sistema MUST permitir que una institución en estado de pago "en deuda"
   reciba entregas válidas; el estado de deuda MUST NOT bloquear ni alterar la
   confirmación.
