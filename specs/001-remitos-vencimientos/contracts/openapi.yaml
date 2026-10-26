@@ -24,6 +24,8 @@ tags:
     description: Consulta de facturas, sin operaciones de modificación.
   - name: Notificaciones
     description: Avisos de vencimiento visibles para depósito.
+  - name: Usuarios
+    description: Identidad autenticada y provisionamiento protegido de cuentas.
 paths:
   /auth/login:
     post:
@@ -48,6 +50,49 @@ paths:
           $ref: "#/components/responses/ErrorSolicitud"
         "401":
           $ref: "#/components/responses/ErrorNoAutenticado"
+  /auth/yo:
+    get:
+      tags: [Autenticacion]
+      operationId: consultarIdentidad
+      summary: Consultar la identidad autenticada
+      x-roles: [user_deposito, user_institucional, user_tesoreria]
+      responses:
+        "200":
+          description: Identidad del usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+  /usuarios:
+    post:
+      tags: [Usuarios]
+      operationId: provisionarUsuario
+      summary: Provisionar una cuenta de usuario
+      description: Operación protegida disponible únicamente para user_deposito.
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AltaUsuarioSolicitud"
+      responses:
+        "201":
+          description: Usuario creado sin exponer su hash de clave
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsuarioRespuesta"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
   /remitos:
     get:
       tags: [Remitos]
@@ -75,6 +120,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginaRemitos"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
         "401":
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
@@ -106,27 +153,6 @@ paths:
           $ref: "#/components/responses/ErrorProhibido"
         "422":
           $ref: "#/components/responses/ErrorReglaNegocio"
-  /remitos/{remitoId}:
-    get:
-      tags: [Remitos]
-      operationId: consultarRemito
-      summary: Consultar un remito visible para el usuario
-      x-roles: [user_deposito, user_institucional]
-      parameters:
-        - $ref: "#/components/parameters/RemitoId"
-      responses:
-        "200":
-          description: Remito y detalles
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Remito"
-        "401":
-          $ref: "#/components/responses/ErrorNoAutenticado"
-        "403":
-          $ref: "#/components/responses/ErrorProhibido"
-        "404":
-          $ref: "#/components/responses/ErrorNoEncontrado"
   /remitos/{remitoId}/detalles:
     post:
       tags: [Detalles de remito]
@@ -205,6 +231,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginaProductos"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
         "401":
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
@@ -234,6 +262,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginaStock"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
         "401":
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
@@ -261,6 +291,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginaInstituciones"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
         "401":
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
@@ -291,10 +323,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginaFacturas"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
         "401":
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
           $ref: "#/components/responses/ErrorProhibido"
+        "405":
+          $ref: "#/components/responses/ErrorMetodoNoPermitido"
   /notificaciones:
     get:
       tags: [Notificaciones]
@@ -314,6 +350,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginaNotificaciones"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
         "401":
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
@@ -363,6 +401,11 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    ErrorMetodoNoPermitido:
+      description: El método HTTP no está implementado para el recurso
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     ErrorReglaNegocio:
       description: Regla de negocio incumplida
       content:
@@ -375,6 +418,26 @@ components:
       properties:
         nombreUsuario: { type: string }
         clave: { type: string, format: password }
+    AltaUsuarioSolicitud:
+      type: object
+      required: [nombreUsuario, clave, rol]
+      properties:
+        nombreUsuario: { type: string, maxLength: 100 }
+        clave: { type: string, format: password, minLength: 12, maxLength: 128 }
+        rol: { $ref: "#/components/schemas/Rol" }
+        institucionId:
+          type: [integer, "null"]
+          format: int64
+          description: Obligatorio únicamente para user_institucional.
+    UsuarioRespuesta:
+      type: object
+      required: [id, nombreUsuario, rol, activo]
+      properties:
+        id: { type: integer, format: int64 }
+        nombreUsuario: { type: string }
+        rol: { $ref: "#/components/schemas/Rol" }
+        institucionId: { type: [integer, "null"], format: int64 }
+        activo: { type: boolean }
     TokenRespuesta:
       type: object
       required: [token, tipo, expiraEnSegundos, roles]
@@ -512,11 +575,14 @@ components:
           properties:
             contenido: { type: array, items: { $ref: "#/components/schemas/FacturaConsulta" } }
     PaginaNotificaciones:
-      allOf:
-        - $ref: "#/components/schemas/PaginaBase"
-        - type: object
-          properties:
-            contenido: { type: array, items: { $ref: "#/components/schemas/Notificacion" } }
+      type: object
+      required: [content, number, size, totalElements, totalPages]
+      properties:
+        content: { type: array, items: { $ref: "#/components/schemas/Notificacion" } }
+        number: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1, maximum: 100 }
+        totalElements: { type: integer, format: int64 }
+        totalPages: { type: integer }
     PaginaBase:
       type: object
       required: [pagina, tamano, totalElementos, totalPaginas]

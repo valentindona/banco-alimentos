@@ -18,6 +18,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -64,6 +66,16 @@ public class GlobalExceptionHandler {
                 "El cuerpo de la solicitud no tiene un formato válido.", solicitud, List.of());
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ErrorRespuesta> manejarParametroInvalido(
+            MethodArgumentTypeMismatchException excepcion,
+            HttpServletRequest solicitud) {
+        List<ErrorRespuesta.ErrorCampo> errores = List.of(
+                new ErrorRespuesta.ErrorCampo(excepcion.getName(), "El formato del parámetro no es válido."));
+        return crearRespuesta(HttpStatus.BAD_REQUEST, "SOLICITUD_INVALIDA",
+                "La solicitud contiene parámetros inválidos.", solicitud, errores);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     ResponseEntity<ErrorRespuesta> manejarAutenticacion(
             AuthenticationException excepcion,
@@ -86,6 +98,14 @@ public class GlobalExceptionHandler {
             HttpServletRequest solicitud) {
         return crearRespuesta(HttpStatus.NOT_FOUND, "RECURSO_INEXISTENTE",
                 "El recurso solicitado no existe.", solicitud, List.of());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ErrorRespuesta> manejarMetodoNoPermitido(
+            HttpRequestMethodNotSupportedException excepcion,
+            HttpServletRequest solicitud) {
+        return crearRespuesta(HttpStatus.METHOD_NOT_ALLOWED, "METODO_NO_PERMITIDO",
+                "El método solicitado no está permitido para este recurso.", solicitud, List.of());
     }
 
     @ExceptionHandler(Exception.class)

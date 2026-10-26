@@ -22,6 +22,7 @@ validación; en otros errores es una lista vacía.
 | `401` | Credenciales ausentes o token inválido/expirado |
 | `403` | Rol no autorizado |
 | `404` | Recurso inexistente o no visible para el usuario |
+| `405` | Método HTTP no implementado para el recurso |
 | `422` | `ReglaNegocioException`: vencimiento, stock, duplicados o remito vacío |
 | `500` | Error inesperado; sin detalles internos ni secretos |
 

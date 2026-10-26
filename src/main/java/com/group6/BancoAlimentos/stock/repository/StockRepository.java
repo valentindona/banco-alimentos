@@ -11,9 +11,23 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 
 public interface StockRepository extends JpaRepository<Stock, Long> {
+
+    @Query("""
+            select stock from Stock stock
+            where (:productoId is null or stock.productoId = :productoId)
+              and (:fechaVencimiento is null or stock.fechaVencimiento = :fechaVencimiento)
+              and (:estado is null or stock.estado = :estado)
+            """)
+    Page<Stock> buscarConFiltros(
+            @Param("productoId") Long productoId,
+            @Param("fechaVencimiento") LocalDate fechaVencimiento,
+            @Param("estado") EstadoStock estado,
+            Pageable pageable);
 
     Optional<Stock> findByProductoIdAndFechaVencimiento(Long productoId, LocalDate fechaVencimiento);
 

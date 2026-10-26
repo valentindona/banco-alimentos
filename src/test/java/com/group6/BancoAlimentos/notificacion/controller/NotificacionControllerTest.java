@@ -77,6 +77,14 @@ class NotificacionControllerTest {
                         .with(authentication(autenticacion("user_deposito"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.length()").value(2));
+
+        mockMvc.perform(get("/api/notificaciones")
+                        .with(authentication(autenticacion("user_deposito")))
+                        .param("tipo", "POR_VENCER")
+                        .param("pagina", "0")
+                        .param("tamano", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1));
     }
 
     @Test
