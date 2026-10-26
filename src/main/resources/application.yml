@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: banco-alimentos
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/banco_alimentos}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+seguridad:
+  jwt:
+    secreto: ${JWT_SECRET}
+    duracion: 1h
+
+springdoc:
+  api-docs:
+    path: /api-docs

@@ -1,0 +1,17 @@
+target/
+build/
+*.class
+*.jar
+.gradle/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+.env
+.env.*
+!.env.example
+application-local.properties
+application-*.local.properties

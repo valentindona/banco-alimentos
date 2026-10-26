@@ -1,0 +1,46 @@
+package com.group6.BancoAlimentos.Security;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+public class ConfiguracionSeguridad {
+
+    @Bean
+    SecurityFilterChain filtroSeguridad(
+            HttpSecurity http,
+            FiltroJwt filtroJwt,
+            ManejadorErroresSeguridad manejadorErrores) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(sesion -> sesion.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(errores -> errores
+                        .authenticationEntryPoint((solicitud, respuesta, excepcion) ->
+                                manejadorErrores.escribir(solicitud, respuesta, HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler((solicitud, respuesta, excepcion) ->
+                                manejadorErrores.escribir(solicitud, respuesta, HttpStatus.FORBIDDEN)))
+                .authorizeHttpRequests(autorizacion -> autorizacion
+                        .requestMatchers("/api/auth/login", "/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios").hasRole("user_deposito")
+                        .requestMatchers("/api/auth/yo").authenticated()
+                        .requestMatchers("/api/**").authenticated()
+                        .anyRequest().permitAll())
+                .addFilterBefore(filtroJwt, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    @Bean
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
