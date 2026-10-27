@@ -128,7 +128,8 @@ coincide con las rutas y respuestas reales.
 
 **Purpose**: Verificar la entrega completa y proteger los flujos existentes.
 
-- [ ] T027 Ejecutar `.\mvnw.cmd clean verify` según `specs/002-registro-donaciones/quickstart.md`; confirmar V1–V7 en H2 limpio, pruebas de atomicidad/auditoría/permisos/contrato y regresión de remitos y vencimientos, y corregir cualquier fallo en los archivos afectados antes de cerrar la feature.
+- [X] T027 Ejecutar `.\mvnw.cmd clean verify` según `specs/002-registro-donaciones/quickstart.md`; confirmar V1–V7 en H2 limpio, pruebas de atomicidad/auditoría/permisos/contrato y regresión de remitos y vencimientos, y corregir cualquier fallo en los archivos afectados antes de cerrar la feature. Validación completada: 116 tests, 0 fallos, 0 errores y 1 omitido; BUILD SUCCESS.
+- [ ] T028 Validar V7 con Flyway en MySQL real sobre una base limpia y una copia con facturas legadas, y ejecutar las pruebas condicionadas por `MYSQL_TEST_URL`; pendiente hasta disponer de una base MySQL de pruebas. No se ejecutó Docker.
 
 ---
 
