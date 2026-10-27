@@ -57,6 +57,7 @@ class InstitucionControllerIntegracionTest {
 
     @BeforeEach
     void prepararDatos() {
+        jdbcTemplate.update("DELETE FROM ajustes_stock");
         remitoRepository.deleteAll();
         usuarioRepository.deleteAll();
         jdbcTemplate.update("DELETE FROM facturas");

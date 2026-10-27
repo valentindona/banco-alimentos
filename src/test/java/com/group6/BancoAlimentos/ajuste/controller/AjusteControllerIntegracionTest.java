@@ -29,6 +29,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,6 +97,23 @@ class AjusteControllerIntegracionTest {
                 .estadoPago(EstadoPago.AL_DIA)
                 .activa(true)
                 .build());
+    }
+
+    @AfterEach
+    void limpiarDatos() {
+        jdbcTemplate.update(
+                "DELETE FROM ajustes_stock WHERE producto_id = ? OR usuario_id = ?", producto.getId(), usuario.getId());
+        jdbcTemplate.update("""
+                DELETE FROM detalles_remito
+                WHERE remito_id IN (SELECT id FROM remitos WHERE institucion_id = ?)
+                   OR stock_id IN (SELECT id FROM stock WHERE producto_id = ?)
+                """, institucion.getId(), producto.getId());
+        jdbcTemplate.update("DELETE FROM remitos WHERE institucion_id = ?", institucion.getId());
+        jdbcTemplate.update("DELETE FROM stock WHERE producto_id = ?", producto.getId());
+        jdbcTemplate.update("DELETE FROM usuarios WHERE id = ?", usuario.getId());
+        jdbcTemplate.update("DELETE FROM instituciones WHERE id = ?", institucion.getId());
+        jdbcTemplate.update("DELETE FROM instituciones WHERE nombre = 'Comedor nuevo'");
+        jdbcTemplate.update("DELETE FROM productos WHERE id = ?", producto.getId());
     }
 
     @Test

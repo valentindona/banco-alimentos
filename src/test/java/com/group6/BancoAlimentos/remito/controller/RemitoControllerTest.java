@@ -74,6 +74,7 @@ class RemitoControllerTest {
 
     @BeforeEach
     void prepararDatos() {
+        jdbcTemplate.update("DELETE FROM ajustes_stock");
         detalleRemitoRepository.deleteAll();
         remitoRepository.deleteAll();
         stockRepository.deleteAll();
@@ -108,6 +109,7 @@ class RemitoControllerTest {
 
     @AfterEach
     void limpiarDatos() {
+        jdbcTemplate.update("DELETE FROM ajustes_stock");
         detalleRemitoRepository.deleteAll();
         remitoRepository.deleteAll();
         stockRepository.deleteAll();
