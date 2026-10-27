@@ -52,12 +52,27 @@ $env:DB_PASSWORD = "contraseña_local"
 $env:JWT_SECRET = "<secreto aleatorio de al menos 32 bytes>"
 ```
 
-Para habilitar el perfil local, que crea el usuario inicial de depósito, definir también:
+Para habilitar el perfil local, que crea una cuenta por cada rol si todavía no existe, definir también
+las claves de bootstrap (12-128 caracteres). Los nombres de usuario tienen valores locales por defecto
+`deposito`, `institucional` y `tesoreria`, y se pueden cambiar con estas variables:
 
 ```powershell
 $env:BOOTSTRAP_DEPOSITO_USUARIO = "deposito"
-$env:BOOTSTRAP_DEPOSITO_CLAVE = "<contraseña de entre 12 y 128 caracteres>"
+$env:BOOTSTRAP_DEPOSITO_CLAVE = "<clave local de depósito, 12-128 caracteres>"
+$env:BOOTSTRAP_INSTITUCIONAL_USUARIO = "institucional"
+$env:BOOTSTRAP_INSTITUCIONAL_CLAVE = "<clave local institucional, 12-128 caracteres>"
+$env:BOOTSTRAP_INSTITUCIONAL_ID = "1"
+$env:BOOTSTRAP_TESORERIA_USUARIO = "tesoreria"
+$env:BOOTSTRAP_TESORERIA_CLAVE = "<clave local de tesorería, 12-128 caracteres>"
 ```
+
+`BOOTSTRAP_INSTITUCIONAL_ID` indica la institución activa asociada a la cuenta institucional;
+por defecto usa la institución con ID `1`.
+
+Las contraseñas no tienen valores por defecto ni se guardan en el repositorio. El bootstrap es exclusivo
+del perfil `local`, codifica las claves con el encoder de la aplicación y no reemplaza cuentas existentes.
+Las cuentas permiten verificar permisos por rol: depósito opera stock/remitos/ajustes, institucional
+administra instituciones y tesorería consulta instituciones y actualiza estados de pago.
 
 Iniciar la API:
 
@@ -91,6 +106,10 @@ Las funcionalidades siguen una organización por feature con controladores, serv
 - `user_tesoreria`: consulta instituciones y actualiza su estado de pago.
 
 Las rutas de la API están protegidas por JWT y sus permisos se definen en la configuración central de Spring Security. El detalle de operaciones, cuerpos y respuestas se encuentra en el contrato OpenAPI de cada feature.
+
+## Frontend
+
+La aplicación Angular interna se desarrolla en frontend. Ver docs/frontend.md para alcance, ejecución local, conexión con la API y próximos pasos.
 
 ## Documentación
 

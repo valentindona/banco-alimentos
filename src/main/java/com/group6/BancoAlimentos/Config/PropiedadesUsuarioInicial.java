@@ -9,6 +9,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "seguridad.usuario-inicial")
 public class PropiedadesUsuarioInicial {
 
-    private String nombreUsuario;
-    private String clave;
+    private CuentaInicial deposito = new CuentaInicial();
+    private CuentaInicial institucional = new CuentaInicial();
+    private CuentaInicial tesoreria = new CuentaInicial();
+
+    @Getter
+    @Setter
+    public static class CuentaInicial {
+
+        private String nombreUsuario;
+        private String clave;
+        private Long institucionId;
+    }
 }

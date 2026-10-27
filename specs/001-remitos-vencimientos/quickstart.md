@@ -27,11 +27,12 @@ presuponen Windows PowerShell para el wrapper Maven; en otros sistemas usar `./m
 
 4. Verificar que OpenAPI esté disponible en `/swagger-ui/index.html` y que la salud de
    la aplicación responda correctamente.
-5. Para el primer arranque local, definir `BOOTSTRAP_DEPOSITO_USUARIO` y
-   `BOOTSTRAP_DEPOSITO_CLAVE` (12-128 caracteres) además de `JWT_SECRET`. El perfil
-   `local` crea esa cuenta de depósito solo si todavía no existe; no reemplaza claves
-   de cuentas existentes. Luego, un usuario de depósito puede provisionar las demás
-   cuentas mediante `POST /api/usuarios`. No guardar estos valores en Git.
+5. Para el primer arranque local, definir `BOOTSTRAP_DEPOSITO_CLAVE`,
+   `BOOTSTRAP_INSTITUCIONAL_CLAVE` y `BOOTSTRAP_TESORERIA_CLAVE` (12-128 caracteres)
+   además de `JWT_SECRET`. Los nombres de usuario predeterminados son `deposito`,
+   `institucional` y `tesoreria`; se pueden cambiar con las variables
+   `BOOTSTRAP_<ROL>_USUARIO`. El perfil `local` crea cada cuenta solo si todavía no
+   existe y no reemplaza claves de cuentas existentes. No guardar estas credenciales en Git.
 
 ## Escenarios de validación
 

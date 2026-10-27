@@ -48,14 +48,33 @@ public class ProvisionamientoUsuariosService {
     }
 
     @Transactional
-    public void crearUsuarioDepositoInicial(String nombreUsuario, String clave) {
+    public void crearUsuarioInicial(String nombreUsuario, String clave, RolUsuario rol) {
+        crearUsuarioInicial(nombreUsuario, clave, rol, null);
+    }
+
+    @Transactional
+    public void crearUsuarioInicial(String nombreUsuario, String clave, RolUsuario rol, Long institucionId) {
         if (usuarioRepository.existsByNombreUsuario(nombreUsuario)) {
             return;
+        }
+        if (rol == RolUsuario.USER_INSTITUCIONAL) {
+            if (institucionId == null) {
+                throw new ReglaNegocioException(
+                        "INSTITUCION_REQUERIDA", "El usuario institucional debe estar asociado a una institución.");
+            }
+            if (!consultaInstitucionService.existeActiva(institucionId)) {
+                throw new ReglaNegocioException("INSTITUCION_INEXISTENTE",
+                        "La institución indicada no existe o no está activa.");
+            }
+        } else if (institucionId != null) {
+            throw new ReglaNegocioException(
+                    "INSTITUCION_NO_PERMITIDA", "Solo los usuarios institucionales pueden asociarse a una institución.");
         }
         Usuario usuario = Usuario.builder()
                 .nombreUsuario(nombreUsuario)
                 .claveHash(passwordEncoder.encode(clave))
-                .rol(RolUsuario.USER_DEPOSITO)
+                .rol(rol)
+                .institucionId(institucionId)
                 .activo(true)
                 .build();
         usuarioRepository.save(usuario);

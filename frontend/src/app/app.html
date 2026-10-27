@@ -1,0 +1,366 @@
+@if (!user()) {
+  <main class="login-screen">
+    <section class="login-card">
+      <div class="brand-mark">BA</div>
+      <p class="eyebrow">BANCO DE ALIMENTOS</p>
+      <h1>Mar del Plata</h1>
+      <p class="muted">Sistema de gestión interna</p>
+      @if (error()) {
+        <div class="alert" role="alert">{{ error() }}</div>
+      }
+      <form (ngSubmit)="login()">
+        <label for="username">Usuario</label>
+        <input
+          id="username"
+          name="username"
+          [(ngModel)]="username"
+          autocomplete="username"
+          required
+        />
+        <label for="password">Contraseña</label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          [(ngModel)]="password"
+          autocomplete="current-password"
+          required
+        />
+        <button class="primary-button" type="submit" [disabled]="busy() || !username || !password">
+          {{ busy() ? 'Ingresando…' : 'Ingresar' }}
+        </button>
+      </form>
+      <p class="security-note">Acceso privado para personal autorizado</p>
+    </section>
+  </main>
+} @else {
+  <div class="desktop-app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark small">BA</div>
+        <div><strong>Banco de Alimentos</strong><span>Mar del Plata</span></div>
+      </div>
+      <div class="workspace-label">ESPACIO DE TRABAJO</div>
+      <div class="workspace-name">Gestión interna</div>
+      <div class="workspace-label section-label">MÓDULOS DISPONIBLES</div>
+      <nav aria-label="Módulos disponibles">
+        @for (module of visibleModules; track module.key) {
+          <button
+            class="nav-item"
+            [class.selected]="activeModule()?.key === module.key"
+            (click)="openModule(module)"
+          >
+            <span class="nav-icon">{{ module.icon }}</span
+            >{{ module.label }}
+          </button>
+        }
+      </nav>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div>
+          <button class="home-link" (click)="activeModule.set(null); closeForm()">Inicio</button>
+          @if (activeModule()) {
+            <span class="separator">/</span><strong>{{ activeModule()?.label }}</strong>
+          }
+        </div>
+        <div class="user-menu">
+          <div class="avatar">{{ user()?.nombreUsuario?.charAt(0)?.toUpperCase() }}</div>
+          <div class="user-copy">
+            <strong>{{ user()?.nombreUsuario }}</strong
+            ><span>{{ roleLabel(user()?.rol) }}</span>
+          </div>
+          <button class="logout" (click)="logout()">Salir</button>
+        </div>
+      </header>
+
+      <section class="content">
+        @if (error()) {
+          <div class="alert" role="alert">{{ error() }}</div>
+        }
+
+        @if (!activeModule()) {
+          <div class="welcome-row">
+            <div>
+              <p class="eyebrow">PANEL DE OPERACIONES</p>
+              <h1>Hola, {{ user()?.nombreUsuario }}</h1>
+              <p class="muted">Elegí un acceso para continuar con tus tareas.</p>
+            </div>
+            <span class="role-chip">{{ roleLabel(user()?.rol) }}</span>
+          </div>
+          <div class="module-grid">
+            @for (module of visibleModules; track module.key) {
+              <button class="module-card" (click)="openModule(module)">
+                <span class="module-icon">{{ module.icon }}</span>
+                <span class="module-card-copy"
+                  ><strong>{{ module.label }}</strong
+                  ><small>{{ module.description }}</small></span
+                >
+                <span class="card-arrow" aria-hidden="true">›</span>
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="welcome-row">
+            <div>
+              <p class="eyebrow">PANEL DE OPERACIONES</p>
+              <h1>{{ activeModule()?.label }}</h1>
+              <p class="muted">{{ activeModule()?.description }}</p>
+            </div>
+            <div class="module-heading-actions">
+              <span class="role-chip">{{ roleLabel(user()?.rol) }}</span>
+              @if (canCreate) {
+                <button class="primary-button compact-button" (click)="openCreateForm()">
+                  <span aria-hidden="true">＋</span> Agregar
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (formMode()) {
+            <section class="form-panel" aria-labelledby="form-title">
+              <div class="form-panel-heading">
+                <div>
+                  <span class="panel-accent"></span>
+                  <h2 id="form-title">{{ formTitle }}</h2>
+                </div>
+                <button
+                  class="icon-button"
+                  type="button"
+                  aria-label="Cerrar formulario"
+                  (click)="closeForm()"
+                >
+                  ×
+                </button>
+              </div>
+              <form class="record-form" (ngSubmit)="submitForm()">
+                @for (field of formFields; track field.name) {
+                  @if (showFormField(field)) {
+                    <div class="form-field" [class.full-width]="field.type === 'textarea'">
+                      <label [for]="'field-' + field.name">{{ field.label }}</label>
+                      @if (field.type === 'select') {
+                        <select
+                          [id]="'field-' + field.name"
+                          [name]="field.name"
+                          [ngModel]="formValues()[field.name] ?? ''"
+                          (ngModelChange)="updateFormValue(field.name, $event)"
+                          [required]="field.required ?? false"
+                        >
+                          <option value="" disabled>Seleccioná una opción</option>
+                          @for (option of field.options ?? []; track option) {
+                            <option [value]="option">{{ option }}</option>
+                          }
+                        </select>
+                      } @else if (field.type === 'textarea') {
+                        <textarea
+                          [id]="'field-' + field.name"
+                          [name]="field.name"
+                          rows="3"
+                          [ngModel]="formValues()[field.name] ?? ''"
+                          (ngModelChange)="updateFormValue(field.name, $event)"
+                          [required]="field.required ?? false"
+                        ></textarea>
+                      } @else {
+                        <input
+                          [id]="'field-' + field.name"
+                          [name]="field.name"
+                          [type]="field.type"
+                          [ngModel]="formValues()[field.name] ?? ''"
+                          (ngModelChange)="updateFormValue(field.name, $event)"
+                          [required]="
+                            (field.required ?? false) ||
+                            (field.name === 'institucionId' &&
+                              formValues()['rol'] === 'USER_INSTITUCIONAL')
+                          "
+                          [min]="field.type === 'number' ? '0.001' : null"
+                        />
+                      }
+                      @if (field.hint) {
+                        <small class="field-hint">{{ field.hint }}</small>
+                      }
+                    </div>
+                  }
+                }
+                @if (activeModule()?.key === 'donaciones') {
+                  <div class="donation-items full-width">
+                    <div class="items-heading">
+                      <h3>Productos recibidos</h3>
+                      <button class="secondary-button" type="button" (click)="addDonationItem()">
+                        ＋ Agregar producto
+                      </button>
+                    </div>
+                    @for (item of donationItems(); track $index; let itemIndex = $index) {
+                      <div class="donation-item-row">
+                        <div class="form-field">
+                          <label [for]="'donation-product-' + itemIndex">ID del producto</label>
+                          <input
+                            [id]="'donation-product-' + itemIndex"
+                            type="number"
+                            min="1"
+                            required
+                            [name]="'donation-product-' + itemIndex"
+                            [ngModel]="item.productoId"
+                            (ngModelChange)="updateDonationItem(itemIndex, 'productoId', $event)"
+                          />
+                        </div>
+                        <div class="form-field">
+                          <label [for]="'donation-quantity-' + itemIndex">Cantidad</label>
+                          <input
+                            [id]="'donation-quantity-' + itemIndex"
+                            type="number"
+                            min="0.001"
+                            step="0.001"
+                            required
+                            [name]="'donation-quantity-' + itemIndex"
+                            [ngModel]="item.cantidad"
+                            (ngModelChange)="updateDonationItem(itemIndex, 'cantidad', $event)"
+                          />
+                        </div>
+                        <div class="form-field">
+                          <label [for]="'donation-expiration-' + itemIndex"
+                            >Vencimiento del lote</label
+                          >
+                          <input
+                            [id]="'donation-expiration-' + itemIndex"
+                            type="date"
+                            required
+                            [name]="'donation-expiration-' + itemIndex"
+                            [ngModel]="item.fechaVencimiento"
+                            (ngModelChange)="
+                              updateDonationItem(itemIndex, 'fechaVencimiento', $event)
+                            "
+                          />
+                        </div>
+                        @if (donationItems().length > 1) {
+                          <button
+                            class="danger-button remove-item"
+                            type="button"
+                            (click)="removeDonationItem(itemIndex)"
+                          >
+                            Quitar
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+                  <p class="form-note">
+                    Cada registro de donación crea un lote de stock para el producto y vencimiento
+                    indicados.
+                  </p>
+                }
+                @if (activeModule()?.key === 'usuarios') {
+                  <p class="form-note">
+                    Para cuentas institucionales se requiere un ID de institución. La contraseña
+                    debe tener al menos 12 caracteres.
+                  </p>
+                }
+                <div class="form-actions">
+                  <button class="secondary-button" type="button" (click)="closeForm()">
+                    Cancelar
+                  </button>
+                  <button class="primary-button compact-button" type="submit" [disabled]="busy()">
+                    {{ busy() ? 'Guardando…' : 'Guardar' }}
+                  </button>
+                </div>
+              </form>
+            </section>
+          }
+
+          @if (busy()) {
+            <div class="loading" role="status"><span></span>Consultando la API…</div>
+          } @else if (payload() !== null && rows.length === 0 && !formMode()) {
+            <div class="empty-state">
+              <span class="empty-icon">{{ activeModule()?.icon }}</span>
+              <h2>
+                {{
+                  activeModule()?.key === 'usuarios'
+                    ? 'Administrá los accesos'
+                    : 'Todavía no hay registros'
+                }}
+              </h2>
+              <p>
+                @if (activeModule()?.key === 'usuarios') {
+                  Creá cuentas para el personal. Cada una tendrá acceso según el rol asignado.
+                } @else if (canCreate) {
+                  Podés agregar el primer registro de este módulo.
+                } @else {
+                  Cuando haya información disponible, la vas a encontrar acá.
+                }
+              </p>
+            </div>
+          } @else if (payload() !== null && rows.length > 0) {
+            <div class="results-heading">
+              <h2>Registros</h2>
+              <span>{{ rows.length }} en esta página</span>
+            </div>
+            <div class="record-grid">
+              @for (row of rows; track rowId(row) || $index) {
+                <article class="record-card">
+                  <div class="record-topline">
+                    <span class="record-module-icon">{{ activeModule()?.icon }}</span>
+                    <span class="record-id">{{ cardSubtitle(row) }}</span>
+                  </div>
+                  <h3>{{ cardTitle(row) }}</h3>
+                  <div class="record-details">
+                    @for (detail of cardDetails(row); track detail) {
+                      <p>{{ detail }}</p>
+                    }
+                  </div>
+                  @if (activeModule()?.key === 'remitos' && canManageRemito(row)) {
+                    <div class="record-actions">
+                      <button class="secondary-button" (click)="openRemitoDetailForm(row)">
+                        Agregar producto
+                      </button>
+                      <button class="primary-button compact-button" (click)="confirmRemito(row)">
+                        Confirmar
+                      </button>
+                    </div>
+                  } @else if (canChangePayment(row)) {
+                    <div class="record-actions">
+                      <button class="secondary-button" (click)="openPaymentForm(row)">
+                        Cambiar estado de pago
+                      </button>
+                    </div>
+                  } @else if (canEditRow(row) || canDeactivateRow(row)) {
+                    <div class="record-actions">
+                      @if (canEditRow(row)) {
+                        <button class="secondary-button" (click)="openEditForm(row)">Editar</button>
+                      }
+                      @if (canDeactivateRow(row)) {
+                        <button class="danger-button" (click)="deactivate(row)">Dar de baja</button>
+                      }
+                    </div>
+                  }
+                </article>
+              }
+            </div>
+            @if (totalPages() > 1) {
+              <div class="pagination" aria-label="Paginación">
+                <button
+                  class="secondary-button"
+                  (click)="changePage(pageIndex() - 1)"
+                  [disabled]="pageIndex() === 0"
+                >
+                  Anterior
+                </button>
+                <span>Página {{ pageIndex() + 1 }} de {{ totalPages() }}</span>
+                <button
+                  class="secondary-button"
+                  (click)="changePage(pageIndex() + 1)"
+                  [disabled]="pageIndex() + 1 >= totalPages()"
+                >
+                  Siguiente
+                </button>
+              </div>
+            }
+          }
+        }
+
+        <footer class="footer-note">
+          Banco de Alimentos Mar del Plata <span>·</span> Sistema privado
+        </footer>
+      </section>
+    </main>
+  </div>
+}

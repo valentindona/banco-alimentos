@@ -1,10 +1,12 @@
-spring:
-  datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/banco_alimentos}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-
 seguridad:
   usuario-inicial:
-    nombre-usuario: ${BOOTSTRAP_DEPOSITO_USUARIO}
-    clave: ${BOOTSTRAP_DEPOSITO_CLAVE}
+    deposito:
+      nombre-usuario: ${BOOTSTRAP_DEPOSITO_USUARIO:deposito}
+      clave: ${BOOTSTRAP_DEPOSITO_CLAVE}
+    institucional:
+      nombre-usuario: ${BOOTSTRAP_INSTITUCIONAL_USUARIO:institucional}
+      clave: ${BOOTSTRAP_INSTITUCIONAL_CLAVE}
+      institucion-id: ${BOOTSTRAP_INSTITUCIONAL_ID:1}
+    tesoreria:
+      nombre-usuario: ${BOOTSTRAP_TESORERIA_USUARIO:tesoreria}
+      clave: ${BOOTSTRAP_TESORERIA_CLAVE}

@@ -11,7 +11,7 @@ CREATE TABLE ajustes_stock (
     motivo TEXT NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT chk_ajustes_stock_tipo CHECK (
-        CASE WHEN tipo = 'CORRECCION' THEN TRUE ELSE tipo = 'BAJA' END
+        tipo IN ('CORECCION', 'BAJA')
     ),
     CONSTRAINT chk_ajustes_stock_cantidades CHECK (cantidad_anterior >= 0 AND cantidad_nueva >= 0),
     CONSTRAINT chk_ajustes_stock_baja CHECK (tipo <> 'BAJA' OR cantidad_nueva < cantidad_anterior),
