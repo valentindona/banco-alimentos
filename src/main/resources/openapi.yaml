@@ -18,6 +18,8 @@ tags:
     description: Consulta y administración del catálogo de productos.
   - name: Stock
     description: Consulta de existencias separadas por vencimiento.
+  - name: Ajustes de stock
+    description: Correcciones, bajas e historial inmutable de ajustes manuales.
   - name: Donantes
     description: Consulta y administración de donantes.
   - name: Donaciones
@@ -187,8 +189,6 @@ paths:
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
           $ref: "#/components/responses/ErrorProhibido"
-        "404":
-          $ref: "#/components/responses/ErrorNoEncontrado"
         "422":
           $ref: "#/components/responses/ErrorReglaNegocio"
   /remitos/{remitoId}/confirmacion:
@@ -575,6 +575,76 @@ paths:
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
           $ref: "#/components/responses/ErrorProhibido"
+  /ajustes:
+    post:
+      tags: [Ajustes de stock]
+      operationId: registrarAjusteStock
+      summary: Registrar una corrección o baja de un lote
+      description: La identidad y la fecha se obtienen del principal autenticado y del servidor.
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AjusteSolicitud" }
+      responses:
+        "201":
+          description: Ajuste registrado con snapshot inmutable.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AjusteRespuesta" }
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+    get:
+      tags: [Ajustes de stock]
+      operationId: listarAjustesStock
+      summary: Consultar el historial de ajustes
+      description: Los filtros se combinan con AND y las fechas inclusivas usan UTC.
+      x-roles: [user_deposito]
+      parameters:
+        - name: productoId
+          in: query
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: fechaVencimiento
+          in: query
+          description: Fecha exacta del lote; se omite para no filtrar por vencimiento.
+          schema: { type: string, format: date }
+        - name: fechaDesde
+          in: query
+          description: Fecha UTC inclusiva del evento.
+          schema: { type: string, format: date }
+        - name: fechaHasta
+          in: query
+          description: Fecha UTC inclusiva del evento.
+          schema: { type: string, format: date }
+        - name: usuarioId
+          in: query
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: tipo
+          in: query
+          schema: { $ref: "#/components/schemas/TipoAjuste" }
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Página ordenada por fechaHora e ID descendentes.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaAjusteRespuesta" }
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
   /instituciones:
     get:
       tags: [Instituciones]
@@ -889,6 +959,54 @@ components:
     EstadoStock:
       type: string
       enum: [DISPONIBLE, VENCIDO, SIN_VENCIMIENTO]
+    TipoAjuste:
+      type: string
+      enum: [CORRECCION, BAJA]
+    AjusteSolicitud:
+      type: object
+      additionalProperties: false
+      required: [stockId, tipo, cantidad, motivo]
+      properties:
+        stockId: { type: integer, format: int64, minimum: 1 }
+        tipo: { $ref: "#/components/schemas/TipoAjuste" }
+        cantidad:
+          type: number
+          minimum: 0
+          multipleOf: 0.001
+          description: Cantidad objetivo para CORRECCION; cantidad positiva a descontar para BAJA.
+        motivo:
+          type: string
+          minLength: 1
+          description: Obligatorio y no vacío después de quitar espacios laterales.
+    AjusteRespuesta:
+      type: object
+      required:
+        - id
+        - stockId
+        - productoId
+        - usuarioId
+        - fechaHora
+        - tipo
+        - cantidadAnterior
+        - cantidadNueva
+        - motivo
+      properties:
+        id: { type: integer, format: int64 }
+        stockId: { type: integer, format: int64 }
+        productoId: { type: integer, format: int64 }
+        fechaVencimiento: { type: [string, "null"], format: date }
+        usuarioId: { type: integer, format: int64 }
+        fechaHora: { type: string, format: date-time }
+        tipo: { $ref: "#/components/schemas/TipoAjuste" }
+        cantidadAnterior: { type: number, minimum: 0, multipleOf: 0.001 }
+        cantidadNueva: { type: number, minimum: 0, multipleOf: 0.001 }
+        motivo: { type: string }
+    PaginaAjusteRespuesta:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/AjusteRespuesta" } }
     EstadoPago:
       type: string
       enum: [AL_DIA, EN_DEUDA, PARTICULAR]

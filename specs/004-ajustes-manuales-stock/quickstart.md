@@ -13,10 +13,10 @@ No se requiere MySQL local ni modificar las credenciales de desarrollo. Las prue
 En PowerShell:
 
 ```powershell
-.\mvnw.cmd -Dtest=AjusteServiceTest,AjusteControllerIntegracionTest test
+.\mvnw.cmd -Dtest=AjusteServiceTest,AjusteServiceConcurrenciaTest,AjusteControllerIntegracionTest,AjusteMigracionTest,AjusteRepositoryTest,AjusteConsultaRepositoryTest,AjustePermisosIntegracionTest,ContratoAjustesOpenApiTest test
 ```
 
-Los nombres concretos de clases se fijan en la implementación. Las pruebas de servicio deben cubrir las reglas/rollback; las de integración deben validar endpoints, seguridad, filtros, migración y H2. Añadir a la selección de tests la clase de repositorio si la auditoría Envers o la consulta paginada se prueban separadamente.
+Las pruebas de servicio cubren las reglas y rollback; la prueba de concurrencia comprueba el bloqueo por lote; las de integración validan endpoints, permisos, filtros, migración, consultas y Envers sobre H2.
 
 ## Escenarios de aceptación
 
