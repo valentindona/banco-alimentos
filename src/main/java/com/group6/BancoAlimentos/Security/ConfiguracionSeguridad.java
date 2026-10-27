@@ -53,6 +53,8 @@ public class ConfiguracionSeguridad {
                         .hasRole("user_institucional")
                         .requestMatchers(HttpMethod.DELETE, "/api/instituciones/**")
                         .hasRole("user_institucional")
+                        .requestMatchers(HttpMethod.PATCH, "/api/instituciones/*/estado-pago")
+                        .hasRole("user_tesoreria")
                         .requestMatchers(HttpMethod.GET, "/api/instituciones", "/api/instituciones/**")
                         .hasAnyRole("user_deposito", "user_tesoreria", "user_institucional")
                         .requestMatchers(HttpMethod.GET, "/api/facturas", "/api/facturas/**")

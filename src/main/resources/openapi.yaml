@@ -694,6 +694,38 @@ paths:
           $ref: "#/components/responses/ErrorProhibido"
         "422":
           $ref: "#/components/responses/ErrorReglaNegocio"
+  /instituciones/{institucionId}/estado-pago:
+    parameters:
+      - name: institucionId
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+    patch:
+      tags: [Instituciones]
+      operationId: actualizarEstadoPagoInstitucion
+      summary: Actualizar el estado de pago vigente
+      x-roles: [user_tesoreria]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstadoPagoSolicitud"
+      responses:
+        "200":
+          description: Estado de pago actualizado o confirmado sin cambios.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Institucion"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
   /facturas:
     get:
       tags: [Facturas]
@@ -892,6 +924,13 @@ components:
     EstadoPago:
       type: string
       enum: [AL_DIA, EN_DEUDA, PARTICULAR]
+    EstadoPagoSolicitud:
+      type: object
+      additionalProperties: false
+      required: [estadoPago]
+      properties:
+        estadoPago:
+          $ref: "#/components/schemas/EstadoPago"
     TipoNotificacion:
       type: string
       enum: [POR_VENCER, VENCIDO]

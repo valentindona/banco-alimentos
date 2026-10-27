@@ -140,4 +140,41 @@ class InstitucionServiceTest {
         assertThrows(ReglaNegocioException.class, () -> servicio.darDeBaja(404L));
         verify(institucionRepository, never()).save(any(Institucion.class));
     }
+
+    @Test
+    void cambiaEstadoPagoPorCadaValorYPermiteRepetirElEstadoVigente() {
+        InstitucionService servicio = new InstitucionService(institucionRepository, new InstitucionMapper());
+
+        for (EstadoPago estado : EstadoPago.values()) {
+            Institucion institucion = Institucion.builder()
+                    .id(40L)
+                    .nombre("Comedor")
+                    .domicilio("Calle 1")
+                    .tipo("Comedor")
+                    .estadoPago(EstadoPago.AL_DIA)
+                    .activa(true)
+                    .build();
+            when(institucionRepository.findByIdAndActivaTrue(40L)).thenReturn(Optional.of(institucion));
+            when(institucionRepository.save(any(Institucion.class)))
+                    .thenAnswer(invocacion -> invocacion.getArgument(0));
+
+            var actualizada = servicio.cambiarEstadoPago(40L, estado);
+            var repetida = servicio.cambiarEstadoPago(40L, estado);
+
+            assertEquals(estado, actualizada.estadoPago());
+            assertEquals(estado, repetida.estadoPago());
+            assertTrue(institucion.isActiva());
+        }
+    }
+
+    @Test
+    void rechazaCambiarEstadoPagoDeInstitucionInexistenteODadaDeBaja() {
+        when(institucionRepository.findByIdAndActivaTrue(404L)).thenReturn(Optional.empty());
+        InstitucionService servicio = new InstitucionService(institucionRepository, new InstitucionMapper());
+
+        assertThrows(
+                ReglaNegocioException.class,
+                () -> servicio.cambiarEstadoPago(404L, EstadoPago.EN_DEUDA));
+        verify(institucionRepository, never()).save(any(Institucion.class));
+    }
 }

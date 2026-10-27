@@ -51,6 +51,25 @@ class ContratoInstitucionesOpenApiTest {
         assertTrue(integrado.contains("tipo:"));
     }
 
+    @Test
+    void integraCambioDeEstadoPagoSoloParaTesoreria() throws Exception {
+        String contrato = Files.readString(Path.of(
+                "specs", "003-gestion-instituciones-pagos", "contracts", "openapi.yaml"));
+        String integrado = Files.readString(Path.of("src", "main", "resources", "openapi.yaml"));
+        String ruta = "/instituciones/{institucionId}/estado-pago";
+
+        String operacionContrato = bloqueOperacion(bloqueRuta(contrato, ruta), "patch");
+        String operacionIntegrada = bloqueOperacion(bloqueRuta(integrado, ruta), "patch");
+
+        assertNotNull(operacionContrato, "El contrato no define PATCH " + ruta);
+        assertNotNull(operacionIntegrada, "Falta integrar PATCH " + ruta);
+        assertTrue(operacionContrato.contains("x-roles: [user_tesoreria]"));
+        assertTrue(operacionIntegrada.contains("x-roles: [user_tesoreria]"));
+        assertTrue(operacionIntegrada.contains("#/components/schemas/EstadoPagoSolicitud"));
+        assertTrue(integrado.contains("EstadoPagoSolicitud:"));
+        assertTrue(integrado.contains("enum: [AL_DIA, EN_DEUDA, PARTICULAR]"));
+    }
+
     private String bloqueRuta(String yaml, String ruta) {
         Matcher matcher = Pattern.compile(
                         "(?ms)^  " + Pattern.quote(ruta) + ":\\s*$(.*?)(?=^  /|\\z)")

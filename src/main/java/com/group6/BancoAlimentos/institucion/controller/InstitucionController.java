@@ -1,6 +1,7 @@
 package com.group6.BancoAlimentos.institucion.controller;
 
 import com.group6.BancoAlimentos.Common.respuesta.PaginaRespuesta;
+import com.group6.BancoAlimentos.institucion.dto.EstadoPagoSolicitud;
 import com.group6.BancoAlimentos.institucion.dto.InstitucionRespuesta;
 import com.group6.BancoAlimentos.institucion.dto.InstitucionSolicitud;
 import com.group6.BancoAlimentos.institucion.modelo.EstadoPago;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,6 +62,13 @@ public class InstitucionController {
             @PathVariable Long institucionId,
             @Valid @RequestBody InstitucionSolicitud solicitud) {
         return institucionService.actualizar(institucionId, solicitud);
+    }
+
+    @PatchMapping("/{institucionId}/estado-pago")
+    public InstitucionRespuesta cambiarEstadoPago(
+            @PathVariable Long institucionId,
+            @Valid @RequestBody EstadoPagoSolicitud solicitud) {
+        return institucionService.cambiarEstadoPago(institucionId, solicitud.estadoPago());
     }
 
     @DeleteMapping("/{institucionId}")

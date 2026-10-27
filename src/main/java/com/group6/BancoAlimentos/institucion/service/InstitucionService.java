@@ -58,6 +58,13 @@ public class InstitucionService {
     }
 
     @Transactional
+    public InstitucionRespuesta cambiarEstadoPago(Long institucionId, EstadoPago estadoPago) {
+        Institucion institucion = obtenerActiva(institucionId);
+        institucion.setEstadoPago(estadoPago);
+        return institucionMapper.aRespuesta(institucionRepository.save(institucion));
+    }
+
+    @Transactional
     public void darDeBaja(Long institucionId) {
         Institucion institucion = institucionRepository.findById(institucionId)
                 .orElseThrow(() -> new ReglaNegocioException(

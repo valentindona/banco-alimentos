@@ -63,16 +63,16 @@ El proyecto Spring Boot, Maven Wrapper, Flyway, H2 de pruebas y la estructura de
 
 ### Tests for User Story 2
 
-- [ ] T010 [P] [US2] Agregar pruebas unitarias en `src/test/java/com/group6/BancoAlimentos/institucion/service/InstitucionServiceTest.java` para actualizar cada valor permitido de `EstadoPago`, conservar sin error el estado seleccionado nuevamente y rechazar instituciones inexistentes o inactivas.
-- [ ] T011 [P] [US2] Agregar pruebas MVC/JPA en `src/test/java/com/group6/BancoAlimentos/institucion/InstitucionEstadoPagoIntegracionTest.java` para PATCH, persistencia del cambio, repetición idempotente, rechazo de entrada inválida, acceso exclusivo de `user_tesoreria` y creación de remitos para una institución `EN_DEUDA`.
-- [ ] T012 [P] [US2] Extender `src/test/java/com/group6/BancoAlimentos/Seguridad/ContratoInstitucionesOpenApiTest.java` para verificar el contrato PATCH de estado de pago, el cuerpo limitado al enum existente y el rol exclusivo `user_tesoreria`.
+- [X] T010 [P] [US2] Agregar pruebas unitarias en `src/test/java/com/group6/BancoAlimentos/institucion/service/InstitucionServiceTest.java` para actualizar cada valor permitido de `EstadoPago`, conservar sin error el estado seleccionado nuevamente y rechazar instituciones inexistentes o inactivas.
+- [X] T011 [P] [US2] Agregar pruebas MVC/JPA en `src/test/java/com/group6/BancoAlimentos/institucion/InstitucionEstadoPagoIntegracionTest.java` para PATCH, persistencia del cambio, repetición idempotente, rechazo de entrada inválida, acceso exclusivo de `user_tesoreria` y creación de remitos para una institución `EN_DEUDA`.
+- [X] T012 [P] [US2] Extender `src/test/java/com/group6/BancoAlimentos/Seguridad/ContratoInstitucionesOpenApiTest.java` para verificar el contrato PATCH de estado de pago, el cuerpo limitado al enum existente y el rol exclusivo `user_tesoreria`.
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Implementar en `src/main/java/com/group6/BancoAlimentos/institucion/service/InstitucionService.java` la operación de cambio de estado de pago para instituciones activas, sin incluir el estado en los DTOs de alta/modificación y aceptando como operación válida seleccionar el valor ya vigente.
-- [ ] T014 [US2] Agregar a `src/main/java/com/group6/BancoAlimentos/institucion/controller/InstitucionController.java` el endpoint PATCH `/api/instituciones/{institucionId}/estado-pago`, validando el DTO de solicitud y devolviendo el DTO de institución actualizado.
-- [ ] T015 [US2] Actualizar `src/main/java/com/group6/BancoAlimentos/Security/ConfiguracionSeguridad.java` para autorizar el PATCH de estado de pago únicamente a `user_tesoreria`, sin conceder esa operación a `user_institucional` ni `user_deposito`.
-- [ ] T016 [P] [US2] Documentar PATCH, su esquema de solicitud/respuesta, el enum `AL_DIA`, `EN_DEUDA`, `PARTICULAR` y los permisos en `src/main/resources/openapi.yaml`, de acuerdo con `specs/003-gestion-instituciones-pagos/contracts/openapi.yaml`.
+- [X] T013 [US2] Implementar en `src/main/java/com/group6/BancoAlimentos/institucion/service/InstitucionService.java` la operación de cambio de estado de pago para instituciones activas, sin incluir el estado en los DTOs de alta/modificación y aceptando como operación válida seleccionar el valor ya vigente.
+- [X] T014 [US2] Agregar a `src/main/java/com/group6/BancoAlimentos/institucion/controller/InstitucionController.java` el endpoint PATCH `/api/instituciones/{institucionId}/estado-pago`, validando el DTO de solicitud y devolviendo el DTO de institución actualizado.
+- [X] T015 [US2] Actualizar `src/main/java/com/group6/BancoAlimentos/Security/ConfiguracionSeguridad.java` para autorizar el PATCH de estado de pago únicamente a `user_tesoreria`, sin conceder esa operación a `user_institucional` ni `user_deposito`.
+- [X] T016 [P] [US2] Documentar PATCH, su esquema de solicitud/respuesta, el enum `AL_DIA`, `EN_DEUDA`, `PARTICULAR` y los permisos en `src/main/resources/openapi.yaml`, de acuerdo con `specs/003-gestion-instituciones-pagos/contracts/openapi.yaml`.
 
 **Checkpoint**: Tesorería puede mantener el estado de pago y las reglas de remitos siguen sin depender de ese estado.
 
