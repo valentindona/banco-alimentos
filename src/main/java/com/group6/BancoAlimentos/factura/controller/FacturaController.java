@@ -24,15 +24,21 @@ public class FacturaController {
     @GetMapping
     public PaginaRespuesta<FacturaRespuesta> listar(
             @RequestParam(required = false) Long institucionId,
+            @RequestParam(required = false) Long donanteId,
+            @RequestParam(required = false) Long productoId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                     LocalDate fechaDesde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
                     LocalDate fechaHasta,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                    LocalDate fechaVencimiento,
             @RequestParam(required = false) String estado,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamano) {
         Page<FacturaRespuesta> resultado =
-                consultaFacturaService.listar(institucionId, fechaDesde, fechaHasta, estado, pagina, tamano);
+                consultaFacturaService.listar(
+                        institucionId, donanteId, productoId, fechaDesde, fechaHasta,
+                        fechaVencimiento, estado, pagina, tamano);
         return PaginaRespuesta.desde(resultado);
     }
 }

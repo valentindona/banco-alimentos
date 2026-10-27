@@ -15,9 +15,15 @@ tags:
   - name: Detalles de remito
     description: Selección de existencias y cantidades para un borrador.
   - name: Productos
-    description: Consulta del catálogo de productos.
+    description: Consulta y administración del catálogo de productos.
   - name: Stock
     description: Consulta de existencias separadas por vencimiento.
+  - name: Donantes
+    description: Consulta y administración de donantes.
+  - name: Donaciones
+    description: Registro y consulta de recepciones confirmadas.
+  - name: Items de donación
+    description: Detalle inmutable de las recepciones.
   - name: Instituciones
     description: Consulta de instituciones y su estado de pago.
   - name: Facturas
@@ -209,14 +215,245 @@ paths:
           $ref: "#/components/responses/ErrorNoEncontrado"
         "422":
           $ref: "#/components/responses/ErrorReglaNegocio"
+  /donantes:
+    get:
+      tags: [Donantes]
+      operationId: listarDonantes
+      summary: Listar y filtrar donantes
+      x-roles: [user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/Nombre"
+        - $ref: "#/components/parameters/Activo"
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Donantes que coinciden con los filtros
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaDonantes"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+    post:
+      tags: [Donantes]
+      operationId: crearDonante
+      summary: Registrar un donante
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonanteSolicitud"
+      responses:
+        "201":
+          description: Donante registrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donante"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+  /donantes/{donanteId}:
+    parameters:
+      - $ref: "#/components/parameters/DonanteId"
+    get:
+      tags: [Donantes]
+      operationId: consultarDonante
+      summary: Consultar un donante
+      x-roles: [user_deposito]
+      responses:
+        "200":
+          description: Donante
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donante"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+    put:
+      tags: [Donantes]
+      operationId: actualizarDonante
+      summary: Actualizar un donante
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonanteSolicitud"
+      responses:
+        "200":
+          description: Donante actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Donante"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+    delete:
+      tags: [Donantes]
+      operationId: darDeBajaDonante
+      summary: Desactivar un donante sin borrar su historial
+      x-roles: [user_deposito]
+      responses:
+        "204":
+          description: Donante desactivado
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+  /donaciones:
+    get:
+      tags: [Donaciones]
+      operationId: listarDonaciones
+      summary: Listar y filtrar donaciones confirmadas
+      x-roles: [user_deposito]
+      parameters:
+        - name: donanteId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: fechaDesde
+          in: query
+          schema: { type: string, format: date }
+        - name: fechaHasta
+          in: query
+          schema: { type: string, format: date }
+        - name: productoId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: vencimientoDesde
+          in: query
+          schema: { type: string, format: date }
+        - name: vencimientoHasta
+          in: query
+          schema: { type: string, format: date }
+        - $ref: "#/components/parameters/Pagina"
+        - $ref: "#/components/parameters/Tamano"
+      responses:
+        "200":
+          description: Donaciones que coinciden con los filtros
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaDonaciones"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+    post:
+      tags: [Donaciones]
+      operationId: confirmarDonacion
+      summary: Registrar una recepción, aumentar stock y emitir un comprobante
+      description: Las tres operaciones son atómicas. Un error revierte donación, stock y comprobante.
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DonacionSolicitud"
+      responses:
+        "201":
+          description: Recepción confirmada con comprobante asociado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonacionConfirmada"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+  /donaciones/{donacionId}:
+    parameters:
+      - name: donacionId
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    get:
+      tags: [Donaciones]
+      operationId: consultarDonacion
+      summary: Consultar una recepción confirmada y su comprobante
+      x-roles: [user_deposito]
+      responses:
+        "200":
+          description: Donación y comprobante asociado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DonacionConfirmada"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+  /donaciones/{donacionId}/items:
+    get:
+      tags: [Items de donación]
+      operationId: listarItemsDonacion
+      summary: Consultar las líneas inmutables de una recepción
+      x-roles: [user_deposito]
+      parameters:
+        - name: donacionId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Detalle de productos, cantidades, unidades y vencimientos recibidos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ItemDonacion" }
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
   /productos:
     get:
       tags: [Productos]
-      operationId: listarProductos
+      operationId: listarProductosDonacion
       summary: Filtrar productos
       x-roles: [user_deposito]
       parameters:
         - name: nombre
+          in: query
+          schema: { type: string }
+        - name: tipoAlimento
+          in: query
+          schema: { type: string }
+        - name: unidadMedida
           in: query
           schema: { type: string }
         - name: activo
@@ -237,10 +474,80 @@ paths:
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
           $ref: "#/components/responses/ErrorProhibido"
+    post:
+      tags: [Productos]
+      operationId: crearProducto
+      summary: Agregar un producto al catálogo
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductoSolicitud"
+      responses:
+        "201":
+          description: Producto agregado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Producto"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+  /productos/{productoId}:
+    parameters:
+      - name: productoId
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    put:
+      tags: [Productos]
+      operationId: actualizarProducto
+      summary: Actualizar un producto sin alterar snapshots históricos
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductoSolicitud"
+      responses:
+        "200":
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Producto"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+    delete:
+      tags: [Productos]
+      operationId: desactivarProducto
+      summary: Desactivar un producto sin borrar existencias ni historial
+      x-roles: [user_deposito]
+      responses:
+        "204":
+          description: Producto desactivado
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
   /stock:
     get:
       tags: [Stock]
-      operationId: listarExistencias
+      operationId: listarStockDonacion
       summary: Filtrar existencias por producto, vencimiento y estado
       x-roles: [user_deposito]
       parameters:
@@ -300,15 +607,25 @@ paths:
   /facturas:
     get:
       tags: [Facturas]
-      operationId: listarFacturas
-      summary: Consultar y filtrar facturas en modo de solo lectura
+      operationId: listarFacturasRecepcion
+      summary: Consultar facturas legadas y comprobantes de recepción en modo de solo lectura
+      description: Los comprobantes de donación no son fiscales ni cobrables.
       x-roles: [user_deposito]
       parameters:
         - $ref: "#/components/parameters/InstitucionId"
+        - name: donanteId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: productoId
+          in: query
+          schema: { type: integer, format: int64 }
         - name: fechaDesde
           in: query
           schema: { type: string, format: date }
         - name: fechaHasta
+          in: query
+          schema: { type: string, format: date }
+        - name: fechaVencimiento
           in: query
           schema: { type: string, format: date }
         - name: estado
@@ -372,6 +689,19 @@ components:
       name: institucionId
       in: query
       schema: { type: integer, format: int64 }
+    DonanteId:
+      name: donanteId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    Nombre:
+      name: nombre
+      in: query
+      schema: { type: string }
+    Activo:
+      name: activo
+      in: query
+      schema: { type: boolean }
     Pagina:
       name: pagina
       in: query
@@ -531,14 +861,110 @@ components:
         activa: { type: boolean }
     FacturaConsulta:
       type: object
-      required: [id, numero, institucionId, fecha, estado, importe]
+      description: Facturas legadas y comprobantes inmutables de donación.
+      required: [id, numero, fecha, estado, importe, detalles]
       properties:
         id: { type: integer, format: int64 }
         numero: { type: string }
-        institucionId: { type: integer, format: int64 }
+        institucionId: { type: [integer, "null"], format: int64 }
+        donanteId: { type: [integer, "null"], format: int64 }
+        donacionId: { type: [integer, "null"], format: int64 }
         fecha: { type: string, format: date }
-        estado: { type: string }
-        importe: { type: number }
+        estado:
+          type: string
+          description: Los comprobantes nuevos usan estado EMITIDA; se conservan estados históricos.
+        importe:
+          type: [number, "null"]
+          description: Nulo para comprobantes de donación; no representa un importe económico.
+        detalles:
+          type: array
+          items: { $ref: "#/components/schemas/ItemDonacion" }
+    DonanteSolicitud:
+      type: object
+      required: [nombre]
+      properties:
+        nombre: { type: string, minLength: 1, maxLength: 150 }
+        correo: { type: [string, "null"], format: email, maxLength: 254 }
+        telefono: { type: [string, "null"], maxLength: 50 }
+    Donante:
+      allOf:
+        - $ref: "#/components/schemas/DonanteSolicitud"
+        - type: object
+          required: [id, activo]
+          properties:
+            id: { type: integer, format: int64 }
+            activo: { type: boolean }
+    DonacionSolicitud:
+      type: object
+      required: [donanteId, fecha, items]
+      properties:
+        donanteId: { type: integer, format: int64 }
+        fecha: { type: string, format: date }
+        items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [cantidad, fechaVencimiento]
+            properties:
+              productoId: { type: integer, format: int64 }
+              nombreProducto: { type: string, minLength: 1, maxLength: 120 }
+              tipoAlimento: { type: string, minLength: 1, maxLength: 80 }
+              unidadMedida: { type: string, minLength: 1, maxLength: 50 }
+              cantidad: { type: number, exclusiveMinimum: 0 }
+              fechaVencimiento: { type: string, format: date }
+    ItemDonacion:
+      type: object
+      required: [id, productoId, nombreProducto, tipoAlimento, unidadMedida, cantidad, fechaVencimiento]
+      properties:
+        id: { type: integer, format: int64 }
+        productoId: { type: integer, format: int64 }
+        nombreProducto: { type: string }
+        tipoAlimento: { type: string }
+        unidadMedida: { type: string }
+        cantidad: { type: number }
+        fechaVencimiento: { type: string, format: date }
+    ComprobanteRecepcion:
+      type: object
+      required: [id, numero, donacionId, donanteId, fecha, detalles]
+      properties:
+        id: { type: integer, format: int64 }
+        numero:
+          type: string
+          description: Coincide con el ID autoincremental de Factura.
+        donacionId: { type: integer, format: int64 }
+        donanteId: { type: integer, format: int64 }
+        fecha: { type: string, format: date }
+        detalles:
+          type: array
+          items: { $ref: "#/components/schemas/ItemDonacion" }
+    Donacion:
+      type: object
+      required: [id, donanteId, donanteNombre, fecha, items]
+      properties:
+        id: { type: integer, format: int64 }
+        donanteId: { type: integer, format: int64 }
+        donanteNombre: { type: string }
+        fecha: { type: string, format: date }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/ItemDonacion" }
+    DonacionConfirmada:
+      allOf:
+        - $ref: "#/components/schemas/Donacion"
+        - type: object
+          required: [comprobante]
+          properties:
+            comprobante:
+              $ref: "#/components/schemas/ComprobanteRecepcion"
+    ProductoSolicitud:
+      type: object
+      required: [nombre, tipoAlimento, unidadMedida]
+      properties:
+        nombre: { type: string, minLength: 1, maxLength: 120 }
+        descripcion: { type: [string, "null"], maxLength: 1000 }
+        tipoAlimento: { type: string, minLength: 1, maxLength: 80 }
+        unidadMedida: { type: string, minLength: 1, maxLength: 50 }
     Notificacion:
       type: object
       required: [id, tipo, fechaCreacion, mensaje]
@@ -577,6 +1003,18 @@ components:
         - type: object
           properties:
             contenido: { type: array, items: { $ref: "#/components/schemas/FacturaConsulta" } }
+    PaginaDonantes:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/Donante" } }
+    PaginaDonaciones:
+      allOf:
+        - $ref: "#/components/schemas/PaginaBase"
+        - type: object
+          properties:
+            contenido: { type: array, items: { $ref: "#/components/schemas/Donacion" } }
     PaginaNotificaciones:
       type: object
       required: [content, number, size, totalElements, totalPages]

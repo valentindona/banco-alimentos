@@ -35,11 +35,13 @@ public class ProductoController {
     @GetMapping
     public PaginaRespuesta<ProductoRespuesta> listar(
             @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String tipoAlimento,
+            @RequestParam(required = false) String unidadMedida,
             @RequestParam(required = false) Boolean activo,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamano) {
         Page<ProductoRespuesta> resultado =
-                consultaProductoService.listar(nombre, activo, pagina, tamano);
+                consultaProductoService.listar(nombre, tipoAlimento, unidadMedida, activo, pagina, tamano);
         return PaginaRespuesta.desde(resultado);
     }
 

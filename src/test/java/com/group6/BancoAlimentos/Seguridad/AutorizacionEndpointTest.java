@@ -2,6 +2,8 @@ package com.group6.BancoAlimentos.Seguridad;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -15,6 +17,7 @@ import com.group6.BancoAlimentos.usuario.modelo.Usuario;
 import com.group6.BancoAlimentos.usuario.repository.UsuarioRepository;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -125,6 +128,85 @@ class AutorizacionEndpointTest {
     @Test
     void requiereAutenticacionParaRutasPrivadas() throws Exception {
         mockMvc.perform(get("/api/auth/yo")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void soloDepositoPuedeConsultarYModificarLosRecursosDeDonaciones() throws Exception {
+        long donantesAntes = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM donantes", Long.class);
+        long productosAntes = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM productos", Long.class);
+        long donacionesAntes = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM donaciones", Long.class);
+        long itemsAntes = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM items_donacion", Long.class);
+        long stockAntes = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM stock", Long.class);
+        long facturasAntes = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM facturas", Long.class);
+        Map<String, Object> donante = Map.of("nombre", "Donante no autorizado");
+        Map<String, Object> producto =
+                Map.of("nombre", "Producto no autorizado", "tipoAlimento", "Seco", "unidadMedida", "kg");
+        Map<String, Object> item = Map.of(
+                "nombreProducto", "Manual",
+                "tipoAlimento", "Seco",
+                "unidadMedida", "kg",
+                "cantidad", 1,
+                "fechaVencimiento", "2099-01-01");
+        Map<String, Object> donacion = Map.of(
+                "donanteId", 1,
+                "fecha", "2026-10-26",
+                "items", List.of(item));
+
+        for (RolUsuario rol : List.of(RolUsuario.USER_TESORERIA, RolUsuario.USER_INSTITUCIONAL)) {
+            String token = iniciarSesion(rol.nombre());
+            for (String ruta : List.of(
+                    "/api/donantes",
+                    "/api/donantes/1",
+                    "/api/donaciones",
+                    "/api/donaciones/1",
+                    "/api/donaciones/1/items",
+                    "/api/productos",
+                    "/api/stock",
+                    "/api/facturas")) {
+                mockMvc.perform(get(ruta).header("Authorization", "Bearer " + token))
+                        .andExpect(status().isForbidden());
+            }
+
+            var autorizacion = "Bearer " + token;
+            mockMvc.perform(post("/api/donantes")
+                            .header("Authorization", autorizacion)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsBytes(donante)))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/donaciones")
+                            .header("Authorization", autorizacion)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsBytes(donacion)))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/productos")
+                            .header("Authorization", autorizacion)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsBytes(producto)))
+                    .andExpect(status().isForbidden());
+            for (String ruta : List.of("/api/donantes/1", "/api/productos/1")) {
+                mockMvc.perform(put(ruta)
+                                .header("Authorization", autorizacion)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsBytes(
+                                        ruta.contains("donantes") ? donante : producto)))
+                        .andExpect(status().isForbidden());
+                mockMvc.perform(delete(ruta).header("Authorization", autorizacion))
+                        .andExpect(status().isForbidden());
+            }
+        }
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                donantesAntes, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM donantes", Long.class));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                productosAntes, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM productos", Long.class));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                donacionesAntes, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM donaciones", Long.class));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                itemsAntes, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM items_donacion", Long.class));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                stockAntes, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM stock", Long.class));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                facturasAntes, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM facturas", Long.class));
     }
 
     private String iniciarSesion(String nombreUsuario) throws Exception {

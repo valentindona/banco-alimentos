@@ -1,6 +1,7 @@
 package com.group6.BancoAlimentos.Common.handler;
 
 import com.group6.BancoAlimentos.Common.excepcion.ReglaNegocioException;
+import com.group6.BancoAlimentos.Common.excepcion.RecursoNoEncontradoException;
 import com.group6.BancoAlimentos.Common.respuesta.ErrorRespuesta;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -32,6 +33,14 @@ public class GlobalExceptionHandler {
             ReglaNegocioException excepcion,
             HttpServletRequest solicitud) {
         return crearRespuesta(excepcion.getEstadoHttp(), excepcion.getCodigo(),
+                excepcion.getMessage(), solicitud, List.of());
+    }
+
+    @ExceptionHandler(RecursoNoEncontradoException.class)
+    ResponseEntity<ErrorRespuesta> manejarRecursoNoEncontrado(
+            RecursoNoEncontradoException excepcion,
+            HttpServletRequest solicitud) {
+        return crearRespuesta(HttpStatus.NOT_FOUND, "RECURSO_INEXISTENTE",
                 excepcion.getMessage(), solicitud, List.of());
     }
 

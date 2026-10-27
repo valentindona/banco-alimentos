@@ -21,10 +21,14 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Query("""
             select producto from Producto producto
             where (:nombre is null or lower(producto.nombre) like lower(concat('%', :nombre, '%')))
+              and (:tipoAlimento is null or lower(producto.tipoAlimento) = lower(:tipoAlimento))
+              and (:unidadMedida is null or lower(producto.unidadMedida) = lower(:unidadMedida))
               and (:activo is null or producto.activo = :activo)
             """)
     Page<Producto> buscarConFiltros(
             @Param("nombre") String nombre,
+            @Param("tipoAlimento") String tipoAlimento,
+            @Param("unidadMedida") String unidadMedida,
             @Param("activo") Boolean activo,
             Pageable pageable);
 }

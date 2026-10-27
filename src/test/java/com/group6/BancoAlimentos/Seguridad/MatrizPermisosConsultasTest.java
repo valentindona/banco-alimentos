@@ -7,6 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.group6.BancoAlimentos.Security.UsuarioAutenticado;
 import com.group6.BancoAlimentos.factura.modelo.Factura;
+import com.group6.BancoAlimentos.donacion.modelo.Donacion;
+import com.group6.BancoAlimentos.donante.modelo.Donante;
+import com.group6.BancoAlimentos.itemdonacion.modelo.ItemDonacion;
 import com.group6.BancoAlimentos.institucion.modelo.EstadoPago;
 import com.group6.BancoAlimentos.institucion.modelo.Institucion;
 import com.group6.BancoAlimentos.institucion.repository.InstitucionRepository;
@@ -66,7 +69,8 @@ class MatrizPermisosConsultasTest {
     void depositoPuedeConsultarTodosLosListadosDeSuRol() throws Exception {
         var autenticar = authentication(autenticacion("user_deposito", null));
         for (String ruta : List.of(
-                "/api/remitos", "/api/productos", "/api/stock", "/api/instituciones", "/api/facturas")) {
+                "/api/remitos", "/api/donantes", "/api/donaciones", "/api/productos",
+                "/api/stock", "/api/instituciones", "/api/facturas")) {
             mockMvc.perform(get(ruta).with(autenticar)).andExpect(status().isOk());
         }
     }
@@ -76,7 +80,9 @@ class MatrizPermisosConsultasTest {
         mockMvc.perform(get("/api/instituciones")
                         .with(authentication(autenticacion("user_tesoreria", null))))
                 .andExpect(status().isOk());
-        for (String ruta : List.of("/api/remitos", "/api/productos", "/api/stock", "/api/facturas")) {
+        for (String ruta : List.of(
+                "/api/remitos", "/api/donantes", "/api/donaciones", "/api/productos",
+                "/api/stock", "/api/facturas")) {
             mockMvc.perform(get(ruta).with(authentication(autenticacion("user_tesoreria", null))))
                     .andExpect(status().isForbidden());
         }
@@ -89,10 +95,23 @@ class MatrizPermisosConsultasTest {
                         .with(authentication(autenticar))
                         .param("institucionId", "123456"))
                 .andExpect(status().isOk());
-        for (String ruta : List.of("/api/productos", "/api/stock", "/api/instituciones", "/api/facturas")) {
+        for (String ruta : List.of(
+                "/api/donantes", "/api/donaciones", "/api/productos", "/api/stock",
+                "/api/instituciones", "/api/facturas")) {
             mockMvc.perform(get(ruta).with(authentication(autenticacion("user_institucional", 900001L))))
                     .andExpect(status().isForbidden());
         }
+    }
+
+    @Test
+    void lasConsultasIndividualesInexistentesDevuelven404() throws Exception {
+        var autenticar = authentication(autenticacion("user_deposito", null));
+        mockMvc.perform(get("/api/donantes/999999999").with(autenticar))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/donaciones/999999999").with(autenticar))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/donaciones/999999999/items").with(autenticar))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -113,6 +132,7 @@ class MatrizPermisosConsultasTest {
                 .build());
         Producto producto = productoRepository.saveAndFlush(Producto.builder()
                 .nombre("US3 Arroz integral")
+                .tipoAlimento("Cereal")
                 .unidadMedida("kg")
                 .activo(true)
                 .build());
@@ -135,6 +155,39 @@ class MatrizPermisosConsultasTest {
         Remito remitoAjeno = remitoRepository.saveAndFlush(crearRemito(
                 otraInstitucion, deposito, fechaEntrega));
         LocalDate fechaFactura = LocalDate.now();
+        Donante donante = Donante.builder()
+                .nombre("US3 Donante de prueba")
+                .activo(true)
+                .build();
+        entityManager.persist(donante);
+        entityManager.flush();
+        Donacion donacion = Donacion.builder()
+                .donante(donante)
+                .fecha(fechaFactura)
+                .build();
+        entityManager.persist(donacion);
+        entityManager.flush();
+        ItemDonacion itemDonacion = ItemDonacion.builder()
+                .donacion(donacion)
+                .producto(producto)
+                .productoNombre("Nombre de snapshot")
+                .tipoAlimento("Cereal")
+                .unidadMedida("kg")
+                .cantidad(new BigDecimal("2.500"))
+                .fechaVencimiento(vencimiento)
+                .build();
+        entityManager.persist(itemDonacion);
+        entityManager.flush();
+        Factura comprobante = Factura.builder()
+                .numero("US3-D-" + donacion.getId())
+                .donanteId(donante.getId())
+                .donacionId(donacion.getId())
+                .fecha(fechaFactura)
+                .estado("EMITIDA")
+                .importe(null)
+                .build();
+        entityManager.persist(comprobante);
+        entityManager.flush();
         Factura factura = Factura.builder()
                 .numero("US3-F-1")
                 .institucionId(institucionPropia.getId())
@@ -149,6 +202,8 @@ class MatrizPermisosConsultasTest {
         mockMvc.perform(get("/api/productos")
                         .with(autenticarDeposito)
                         .param("nombre", "US3 Arroz")
+                        .param("tipoAlimento", "cereal")
+                        .param("unidadMedida", "kg")
                         .param("activo", "true")
                         .param("pagina", "0")
                         .param("tamano", "1"))
@@ -157,6 +212,35 @@ class MatrizPermisosConsultasTest {
                 .andExpect(jsonPath("$.contenido[0].id").value(producto.getId()))
                 .andExpect(jsonPath("$.pagina").value(0))
                 .andExpect(jsonPath("$.tamano").value(1));
+        mockMvc.perform(get("/api/donantes")
+                        .with(autenticarDeposito)
+                        .param("nombre", "US3 Donante")
+                        .param("activo", "true")
+                        .param("tamano", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido.length()").value(1))
+                .andExpect(jsonPath("$.contenido[0].id").value(donante.getId()));
+        mockMvc.perform(get("/api/donaciones")
+                        .with(autenticarDeposito)
+                        .param("donanteId", donante.getId().toString())
+                        .param("fechaDesde", fechaFactura.toString())
+                        .param("fechaHasta", fechaFactura.toString())
+                        .param("productoId", producto.getId().toString())
+                        .param("vencimientoDesde", vencimiento.toString())
+                        .param("vencimientoHasta", vencimiento.toString())
+                        .param("tamano", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido.length()").value(1))
+                .andExpect(jsonPath("$.contenido[0].id").value(donacion.getId()))
+                .andExpect(jsonPath("$.contenido[0].items[0].nombreProducto").value("Nombre de snapshot"));
+        mockMvc.perform(get("/api/donaciones/" + donacion.getId()).with(autenticarDeposito))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.comprobante.donacionId").value(donacion.getId()))
+                .andExpect(jsonPath("$.comprobante.detalles[0].nombreProducto").value("Nombre de snapshot"));
+        mockMvc.perform(get("/api/donaciones/" + donacion.getId() + "/items").with(autenticarDeposito))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(itemDonacion.getId()))
+                .andExpect(jsonPath("$[0].nombreProducto").value("Nombre de snapshot"));
         mockMvc.perform(get("/api/stock")
                         .with(autenticarDeposito)
                         .param("productoId", producto.getId().toString())
@@ -204,6 +288,18 @@ class MatrizPermisosConsultasTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.contenido.length()").value(1))
                 .andExpect(jsonPath("$.contenido[0].id").value(factura.getId()));
+        mockMvc.perform(get("/api/facturas")
+                        .with(autenticarDeposito)
+                        .param("donanteId", donante.getId().toString())
+                        .param("productoId", producto.getId().toString())
+                        .param("fechaDesde", fechaFactura.toString())
+                        .param("fechaHasta", fechaFactura.toString())
+                        .param("fechaVencimiento", vencimiento.toString())
+                        .param("estado", "EMITIDA"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.contenido.length()").value(1))
+                .andExpect(jsonPath("$.contenido[0].donacionId").value(donacion.getId()))
+                .andExpect(jsonPath("$.contenido[0].detalles[0].nombreProducto").value("Nombre de snapshot"));
 
     }
 

@@ -18,10 +18,13 @@ public class ConsultaProductoService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ProductoRespuesta> listar(String nombre, Boolean activo, int pagina, int tamano) {
+    public Page<ProductoRespuesta> listar(
+            String nombre, String tipoAlimento, String unidadMedida, Boolean activo, int pagina, int tamano) {
         String filtroNombre = nombre == null || nombre.isBlank() ? null : nombre.trim();
+        String filtroTipo = tipoAlimento == null || tipoAlimento.isBlank() ? null : tipoAlimento.trim();
+        String filtroUnidad = unidadMedida == null || unidadMedida.isBlank() ? null : unidadMedida.trim();
         return productoRepository.buscarConFiltros(
-                        filtroNombre, activo, Paginacion.crear(pagina, tamano))
+                        filtroNombre, filtroTipo, filtroUnidad, activo, Paginacion.crear(pagina, tamano))
                 .map(this::aRespuesta);
     }
 
