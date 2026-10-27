@@ -104,8 +104,8 @@ El proyecto Spring Boot, Maven Wrapper, Flyway, H2 de pruebas y la estructura de
 
 **Purpose**: Verificar la integración de las historias y mantener alineada la guía de validación.
 
-- [ ] T023 [P] Actualizar los nombres/selectores de pruebas y escenarios manuales de `specs/003-gestion-instituciones-pagos/quickstart.md` para reflejar las clases implementadas y ejecutar los comandos de validación focalizada indicados allí.
-- [ ] T024 [P] Revisar que `src/main/resources/openapi.yaml` describa todos los endpoints, respuestas, validaciones y permisos acordados en `specs/003-gestion-instituciones-pagos/contracts/openapi.yaml`, y que los cambios no alteren las operaciones existentes de remitos.
+- [X] T023 [P] Actualizar los nombres/selectores de pruebas y escenarios manuales de `specs/003-gestion-instituciones-pagos/quickstart.md` para reflejar las clases implementadas y ejecutar los comandos de validación focalizada indicados allí.
+- [X] T024 [P] Revisar que `src/main/resources/openapi.yaml` describa todos los endpoints, respuestas, validaciones y permisos acordados en `specs/003-gestion-instituciones-pagos/contracts/openapi.yaml`, y que los cambios no alteren las operaciones existentes de remitos.
 
 ---
 

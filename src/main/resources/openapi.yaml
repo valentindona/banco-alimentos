@@ -579,7 +579,7 @@ paths:
     get:
       tags: [Instituciones]
       operationId: listarInstituciones
-      summary: Filtrar instituciones
+      summary: Listar instituciones activas con filtros y paginación
       description: Permitido a user_institucional, user_deposito y user_tesoreria.
       x-roles: [user_institucional, user_deposito, user_tesoreria]
       parameters:
@@ -1138,6 +1138,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/PaginaBase"
         - type: object
+          required: [contenido]
           properties:
             contenido: { type: array, items: { $ref: "#/components/schemas/Institucion" } }
     PaginaFacturas:

@@ -94,6 +94,7 @@ class ContratoInstitucionesOpenApiTest {
         }
         assertTrue(getContrato.contains("#/components/schemas/PaginaInstitucion"));
         assertTrue(getIntegrado.contains("#/components/schemas/PaginaInstituciones"));
+        assertTrue(bloqueEsquema(integrado, "PaginaInstituciones").contains("required: [contenido]"));
         assertTrue(contrato.contains("maximum: 100"));
         assertTrue(contrato.contains("default: 20"));
         assertTrue(integrado.contains("maximum: 100"));
@@ -115,5 +116,12 @@ class ContratoInstitucionesOpenApiTest {
                         "(?ms)^    " + Pattern.quote(metodo) + ":\\s*$(.*?)(?=^    [a-z]+:|\\z)")
                 .matcher(bloque);
         return matcher.find() ? matcher.group() : null;
+    }
+
+    private String bloqueEsquema(String yaml, String esquema) {
+        Matcher matcher = Pattern.compile(
+                        "(?ms)^    " + Pattern.quote(esquema) + ":\\s*$(.*?)(?=^    [A-Za-z][A-Za-z0-9]*:|\\z)")
+                .matcher(yaml);
+        return matcher.find() ? matcher.group() : "";
     }
 }
