@@ -70,6 +70,36 @@ class ContratoInstitucionesOpenApiTest {
         assertTrue(integrado.contains("enum: [AL_DIA, EN_DEUDA, PARTICULAR]"));
     }
 
+    @Test
+    void contratoDeConsultaDeclaraFiltrosRolesRespuestaYLimitesDePaginacion() throws Exception {
+        String contrato = Files.readString(Path.of(
+                "specs", "003-gestion-instituciones-pagos", "contracts", "openapi.yaml"));
+        String integrado = Files.readString(Path.of("src", "main", "resources", "openapi.yaml"));
+
+        String getContrato = bloqueOperacion(bloqueRuta(contrato, "/instituciones"), "get");
+        String getIntegrado = bloqueOperacion(bloqueRuta(integrado, "/instituciones"), "get");
+
+        assertNotNull(getContrato);
+        assertNotNull(getIntegrado);
+        for (String parametro : new String[] {"nombre", "tipo", "estadoPago", "pagina", "tamano"}) {
+            assertTrue(getContrato.contains("#/components/parameters/" + parametro),
+                    "El contrato no declara el parámetro " + parametro);
+            assertTrue(getIntegrado.contains("name: " + parametro)
+                            || getIntegrado.contains("#/components/parameters/"
+                                    + Character.toUpperCase(parametro.charAt(0)) + parametro.substring(1)),
+                    "Falta integrar el parámetro " + parametro);
+        }
+        for (String rol : new String[] {"user_institucional", "user_tesoreria", "user_deposito"}) {
+            assertTrue(getIntegrado.contains(rol), "Falta el rol " + rol + " para GET /instituciones");
+        }
+        assertTrue(getContrato.contains("#/components/schemas/PaginaInstitucion"));
+        assertTrue(getIntegrado.contains("#/components/schemas/PaginaInstituciones"));
+        assertTrue(contrato.contains("maximum: 100"));
+        assertTrue(contrato.contains("default: 20"));
+        assertTrue(integrado.contains("maximum: 100"));
+        assertTrue(integrado.contains("default: 20"));
+    }
+
     private String bloqueRuta(String yaml, String ruta) {
         Matcher matcher = Pattern.compile(
                         "(?ms)^  " + Pattern.quote(ruta) + ":\\s*$(.*?)(?=^  /|\\z)")

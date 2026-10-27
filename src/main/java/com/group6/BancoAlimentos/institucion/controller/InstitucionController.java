@@ -39,11 +39,12 @@ public class InstitucionController {
     @GetMapping
     public PaginaRespuesta<InstitucionRespuesta> listar(
             @RequestParam(required = false) String nombre,
+            @RequestParam(required = false) String tipo,
             @RequestParam(required = false) EstadoPago estadoPago,
             @RequestParam(defaultValue = "0") int pagina,
             @RequestParam(defaultValue = "20") int tamano) {
         Page<InstitucionRespuesta> resultado =
-                consultaInstitucionService.listar(nombre, estadoPago, pagina, tamano);
+                consultaInstitucionService.listar(nombre, tipo, estadoPago, pagina, tamano);
         return PaginaRespuesta.desde(resultado);
     }
 

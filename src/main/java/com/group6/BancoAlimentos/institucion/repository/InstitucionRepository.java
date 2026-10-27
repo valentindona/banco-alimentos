@@ -21,10 +21,12 @@ public interface InstitucionRepository extends JpaRepository<Institucion, Long> 
             select institucion from Institucion institucion
             where institucion.activa = true
               and (:nombre is null or lower(institucion.nombre) like lower(concat('%', :nombre, '%')))
+              and (:tipo is null or institucion.tipo = :tipo)
               and (:estadoPago is null or institucion.estadoPago = :estadoPago)
             """)
     Page<Institucion> buscarConFiltros(
             @Param("nombre") String nombre,
+            @Param("tipo") String tipo,
             @Param("estadoPago") EstadoPago estadoPago,
             Pageable pageable);
 }

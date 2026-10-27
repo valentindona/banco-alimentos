@@ -585,6 +585,11 @@ paths:
       parameters:
         - name: nombre
           in: query
+          description: Coincidencia parcial sin distinguir mayúsculas/minúsculas.
+          schema: { type: string }
+        - name: tipo
+          in: query
+          description: Coincidencia exacta luego de quitar espacios exteriores.
           schema: { type: string }
         - name: estadoPago
           in: query
