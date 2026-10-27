@@ -1,0 +1,315 @@
+openapi: 3.1.0
+info:
+  title: API de gestión de instituciones
+  version: 1.0.0
+  description: Contrato de consulta, mantenimiento y estados de pago de instituciones beneficiarias.
+servers:
+  - url: /api
+security:
+  - bearerAuth: []
+tags:
+  - name: Instituciones
+paths:
+  /instituciones:
+    get:
+      tags: [Instituciones]
+      operationId: listarInstituciones
+      summary: Listar instituciones activas con filtros y paginación
+      x-roles: [user_institucional, user_tesoreria, user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/nombre"
+        - $ref: "#/components/parameters/tipo"
+        - $ref: "#/components/parameters/estadoPago"
+        - $ref: "#/components/parameters/pagina"
+        - $ref: "#/components/parameters/tamano"
+      responses:
+        "200":
+          description: Página de instituciones que cumplen todos los filtros.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginaInstitucion"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/AccesoDenegado"
+    post:
+      tags: [Instituciones]
+      operationId: crearInstitucion
+      summary: Registrar una institución
+      x-roles: [user_institucional]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstitucionSolicitud"
+      responses:
+        "201":
+          description: Institución creada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Institucion"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "422":
+          $ref: "#/components/responses/ReglaNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/AccesoDenegado"
+  /instituciones/{institucionId}:
+    parameters:
+      - $ref: "#/components/parameters/institucionId"
+    get:
+      tags: [Instituciones]
+      operationId: consultarInstitucion
+      summary: Consultar una institución activa
+      x-roles: [user_institucional, user_tesoreria, user_deposito]
+      responses:
+        "200":
+          description: Institución consultada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Institucion"
+        "422":
+          $ref: "#/components/responses/ReglaNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/AccesoDenegado"
+    put:
+      tags: [Instituciones]
+      operationId: actualizarInstitucion
+      summary: Actualizar datos de una institución
+      x-roles: [user_institucional]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstitucionSolicitud"
+      responses:
+        "200":
+          description: Institución actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Institucion"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "422":
+          $ref: "#/components/responses/ReglaNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/AccesoDenegado"
+    delete:
+      tags: [Instituciones]
+      operationId: darDeBajaInstitucion
+      summary: Dar de baja lógicamente una institución
+      x-roles: [user_institucional]
+      responses:
+        "204":
+          description: Institución desactivada sin borrar sus remitos históricos.
+        "422":
+          $ref: "#/components/responses/ReglaNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/AccesoDenegado"
+  /instituciones/{institucionId}/estado-pago:
+    parameters:
+      - $ref: "#/components/parameters/institucionId"
+    patch:
+      tags: [Instituciones]
+      operationId: actualizarEstadoPagoInstitucion
+      summary: Actualizar el estado de pago vigente
+      x-roles: [user_tesoreria]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EstadoPagoSolicitud"
+      responses:
+        "200":
+          description: Estado de pago actualizado o confirmado sin cambios.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Institucion"
+        "400":
+          $ref: "#/components/responses/SolicitudInvalida"
+        "422":
+          $ref: "#/components/responses/ReglaNegocio"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/AccesoDenegado"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    institucionId:
+      name: institucionId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    nombre:
+      name: nombre
+      in: query
+      required: false
+      schema:
+        type: string
+    tipo:
+      name: tipo
+      in: query
+      required: false
+      schema:
+        type: string
+    estadoPago:
+      name: estadoPago
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/EstadoPago"
+    pagina:
+      name: pagina
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    tamano:
+      name: tamano
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+  schemas:
+    EstadoPago:
+      type: string
+      enum: [AL_DIA, EN_DEUDA, PARTICULAR]
+    InstitucionSolicitud:
+      type: object
+      additionalProperties: false
+      required: [nombre, domicilio, tipo]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 150
+        domicilio:
+          type: string
+          minLength: 1
+          maxLength: 250
+        tipo:
+          type: string
+          minLength: 1
+          maxLength: 80
+    EstadoPagoSolicitud:
+      type: object
+      additionalProperties: false
+      required: [estadoPago]
+      properties:
+        estadoPago:
+          $ref: "#/components/schemas/EstadoPago"
+    Institucion:
+      type: object
+      required: [id, nombre, domicilio, tipo, estadoPago, activa]
+      properties:
+        id:
+          type: integer
+          format: int64
+        nombre:
+          type: string
+        domicilio:
+          type: string
+        tipo:
+          type: string
+        estadoPago:
+          $ref: "#/components/schemas/EstadoPago"
+        activa:
+          type: boolean
+    PaginaInstitucion:
+      type: object
+      required: [contenido, pagina, tamano, totalElementos, totalPaginas]
+      properties:
+        contenido:
+          type: array
+          items:
+            $ref: "#/components/schemas/Institucion"
+        pagina:
+          type: integer
+        tamano:
+          type: integer
+        totalElementos:
+          type: integer
+          format: int64
+        totalPaginas:
+          type: integer
+    Error:
+      type: object
+      required: [fechaHora, estado, codigo, mensaje, ruta, erroresCampo]
+      properties:
+        fechaHora:
+          type: string
+          format: date-time
+        estado:
+          type: integer
+        codigo:
+          type: string
+        mensaje:
+          type: string
+        ruta:
+          type: string
+        erroresCampo:
+          type: array
+          items:
+            $ref: "#/components/schemas/ErrorCampo"
+    ErrorCampo:
+      type: object
+      required: [campo, mensaje]
+      properties:
+        campo:
+          type: string
+        mensaje:
+          type: string
+  responses:
+    SolicitudInvalida:
+      description: La entrada no cumple las validaciones del contrato.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ReglaNegocio:
+      description: La operación no cumple una regla de negocio.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NoAutenticado:
+      description: Falta autenticación válida.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    AccesoDenegado:
+      description: El rol autenticado no tiene permiso para esta operación.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
