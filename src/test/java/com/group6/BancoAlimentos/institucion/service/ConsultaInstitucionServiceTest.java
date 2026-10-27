@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.group6.BancoAlimentos.institucion.modelo.EstadoPago;
 import com.group6.BancoAlimentos.institucion.modelo.Institucion;
+import com.group6.BancoAlimentos.institucion.mapper.InstitucionMapper;
 import com.group6.BancoAlimentos.institucion.repository.InstitucionRepository;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,8 @@ class ConsultaInstitucionServiceTest {
 
     @Test
     void filtraPorNombreYEstadoPagoYPagina() {
-        ConsultaInstitucionService servicio = new ConsultaInstitucionService(institucionRepository);
+        ConsultaInstitucionService servicio =
+                new ConsultaInstitucionService(institucionRepository, new InstitucionMapper());
         Institucion institucion = Institucion.builder()
                 .id(9L)
                 .nombre("Comedor Norte")

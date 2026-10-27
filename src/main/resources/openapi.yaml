@@ -104,8 +104,8 @@ paths:
       tags: [Remitos]
       operationId: listarRemitos
       summary: Listar remitos visibles para el usuario
-      description: Depósito puede filtrar todos los remitos; institucional solo los de su institución.
-      x-roles: [user_deposito, user_institucional]
+      description: Solo depósito puede consultar y filtrar remitos.
+      x-roles: [user_deposito]
       parameters:
         - $ref: "#/components/parameters/InstitucionId"
         - name: fechaDesde
@@ -580,8 +580,8 @@ paths:
       tags: [Instituciones]
       operationId: listarInstituciones
       summary: Filtrar instituciones
-      description: Permitido a user_deposito y user_tesoreria.
-      x-roles: [user_deposito, user_tesoreria]
+      description: Permitido a user_institucional, user_deposito y user_tesoreria.
+      x-roles: [user_institucional, user_deposito, user_tesoreria]
       parameters:
         - name: nombre
           in: query
@@ -604,6 +604,96 @@ paths:
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
           $ref: "#/components/responses/ErrorProhibido"
+    post:
+      tags: [Instituciones]
+      operationId: crearInstitucion
+      summary: Registrar una institución
+      x-roles: [user_institucional]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstitucionSolicitud"
+      responses:
+        "201":
+          description: Institución creada con estado inicial AL_DIA.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Institucion"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+  /instituciones/{institucionId}:
+    parameters:
+      - name: institucionId
+        in: path
+        required: true
+        schema: { type: integer, format: int64, minimum: 1 }
+    get:
+      tags: [Instituciones]
+      operationId: consultarInstitucion
+      summary: Consultar una institución activa
+      x-roles: [user_institucional, user_deposito, user_tesoreria]
+      responses:
+        "200":
+          description: Institución consultada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Institucion"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+    put:
+      tags: [Instituciones]
+      operationId: actualizarInstitucion
+      summary: Actualizar datos de una institución
+      x-roles: [user_institucional]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstitucionSolicitud"
+      responses:
+        "200":
+          description: Institución actualizada.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Institucion"
+        "400":
+          $ref: "#/components/responses/ErrorSolicitud"
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+    delete:
+      tags: [Instituciones]
+      operationId: darDeBajaInstitucion
+      summary: Dar de baja lógicamente una institución
+      x-roles: [user_institucional]
+      responses:
+        "204":
+          description: Institución desactivada sin borrar sus remitos históricos.
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
   /facturas:
     get:
       tags: [Facturas]
@@ -850,13 +940,22 @@ components:
         fechaVencimiento: { type: [string, "null"], format: date }
         cantidadDisponible: { type: number, minimum: 0 }
         estado: { $ref: "#/components/schemas/EstadoStock" }
+    InstitucionSolicitud:
+      type: object
+      additionalProperties: false
+      required: [nombre, domicilio, tipo]
+      properties:
+        nombre: { type: string, minLength: 1, maxLength: 150 }
+        domicilio: { type: string, minLength: 1, maxLength: 250 }
+        tipo: { type: string, minLength: 1, maxLength: 80 }
     Institucion:
       type: object
-      required: [id, nombre, domicilio, estadoPago, activa]
+      required: [id, nombre, domicilio, tipo, estadoPago, activa]
       properties:
         id: { type: integer, format: int64 }
         nombre: { type: string }
         domicilio: { type: string }
+        tipo: { type: [string, "null"], maxLength: 80 }
         estadoPago: { $ref: "#/components/schemas/EstadoPago" }
         activa: { type: boolean }
     FacturaConsulta:

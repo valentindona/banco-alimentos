@@ -239,7 +239,7 @@ components:
         domicilio:
           type: string
         tipo:
-          type: string
+          type: [string, "null"]
         estadoPago:
           $ref: "#/components/schemas/EstadoPago"
         activa:

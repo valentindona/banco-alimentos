@@ -29,6 +29,7 @@ import jakarta.persistence.PersistenceContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.http.HttpMethod;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -38,6 +39,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -89,17 +91,24 @@ class MatrizPermisosConsultasTest {
     }
 
     @Test
-    void institucionalSoloPuedeConsultarSusRemitos() throws Exception {
-        var autenticar = autenticacion("user_institucional", 900001L);
-        mockMvc.perform(get("/api/remitos")
-                        .with(authentication(autenticar))
-                        .param("institucionId", "123456"))
-                .andExpect(status().isOk());
+    void institucionalNoPuedeAccederANingunEndpointDeRemitos() throws Exception {
         for (String ruta : List.of(
                 "/api/donantes", "/api/donaciones", "/api/productos", "/api/stock",
-                "/api/instituciones", "/api/facturas")) {
-            mockMvc.perform(get(ruta).with(authentication(autenticacion("user_institucional", 900001L))))
+                "/api/facturas")) {
+            mockMvc.perform(get(ruta)
+                            .with(authentication(autenticacion("user_institucional", 900001L))))
                     .andExpect(status().isForbidden());
+        }
+
+        for (String ruta : List.of(
+                "/api/remitos", "/api/remitos/1", "/api/remitos/1/detalles",
+                "/api/remitos/1/confirmacion")) {
+            for (HttpMethod metodo : List.of(
+                    HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE)) {
+                mockMvc.perform(request(metodo, ruta)
+                                .with(authentication(autenticacion("user_institucional", 900001L))))
+                        .andExpect(status().isForbidden());
+            }
         }
     }
 
@@ -117,7 +126,7 @@ class MatrizPermisosConsultasTest {
     @Test
     @Transactional
     @Rollback
-    void aplicaFiltrosYPaginacionEnListadosYLimitaRemitosALaInstitucionAutenticada() throws Exception {
+    void aplicaFiltrosYPaginacionYRestringeRemitosADeposito() throws Exception {
         Institucion institucionPropia = institucionRepository.saveAndFlush(Institucion.builder()
                 .nombre("US3 Institucion propia")
                 .domicilio("Calle US3 1")
@@ -276,9 +285,7 @@ class MatrizPermisosConsultasTest {
                         .with(authentication(autenticacion(
                                 "user_institucional", institucionPropia.getId())))
                         .param("institucionId", otraInstitucion.getId().toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.contenido.length()").value(1))
-                .andExpect(jsonPath("$.contenido[0].institucionId").value(institucionPropia.getId()));
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/facturas")
                         .with(autenticarDeposito)
                         .param("institucionId", institucionPropia.getId().toString())

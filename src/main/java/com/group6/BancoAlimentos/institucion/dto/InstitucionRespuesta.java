@@ -6,6 +6,7 @@ public record InstitucionRespuesta(
         Long id,
         String nombre,
         String domicilio,
+        String tipo,
         EstadoPago estadoPago,
         boolean activa) {
 }
