@@ -23,14 +23,13 @@ public class ProductoService {
     @Transactional
     public ProductoRespuesta crear(ProductoSolicitud solicitud) {
         validar(solicitud);
-        Producto producto = Producto.builder()
-                .nombre(solicitud.nombre().trim())
-                .descripcion(normalizar(solicitud.descripcion()))
-                .tipoAlimento(solicitud.tipoAlimento().trim())
-                .unidadMedida(solicitud.unidadMedida().trim())
-                .activo(true)
-                .build();
-        return productoMapper.aRespuesta(productoRepository.save(producto));
+        return productoMapper.aRespuesta(productoRepository.save(nuevoProducto(solicitud)));
+    }
+
+    @Transactional
+    public Producto crearParaDonacion(ProductoSolicitud solicitud) {
+        validar(solicitud);
+        return productoRepository.save(nuevoProducto(solicitud));
     }
 
     @Transactional
@@ -50,6 +49,20 @@ public class ProductoService {
                 .orElseThrow(() -> new ReglaNegocioException(
                         "El producto no existe o está inactivo: " + productoId));
         return productoMapper.aRespuesta(producto);
+    }
+
+    @Transactional(readOnly = true)
+    public Producto buscarModeloActivo(Long productoId) {
+        return productoRepository.findByIdAndActivoTrue(productoId)
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "El producto no existe o está inactivo: " + productoId));
+    }
+
+    @Transactional
+    public Producto buscarModeloActivoBloqueado(Long productoId) {
+        return productoRepository.buscarActivoBloqueado(productoId)
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "El producto no existe o está inactivo: " + productoId));
     }
 
     @Transactional
@@ -76,6 +89,16 @@ public class ProductoService {
                 || solicitud.unidadMedida().isBlank()) {
             throw new ReglaNegocioException("Nombre, tipo de alimento y unidad de medida son obligatorios");
         }
+    }
+
+    private Producto nuevoProducto(ProductoSolicitud solicitud) {
+        return Producto.builder()
+                .nombre(solicitud.nombre().trim())
+                .descripcion(normalizar(solicitud.descripcion()))
+                .tipoAlimento(solicitud.tipoAlimento().trim())
+                .unidadMedida(solicitud.unidadMedida().trim())
+                .activo(true)
+                .build();
     }
 
     private String normalizar(String valor) {

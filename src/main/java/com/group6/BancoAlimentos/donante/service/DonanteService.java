@@ -54,6 +54,13 @@ public class DonanteService {
         return donanteMapper.aRespuesta(donante);
     }
 
+    @Transactional(readOnly = true)
+    public Donante obtenerModeloActivo(Long donanteId) {
+        return donanteRepository.findByIdAndActivoTrue(donanteId)
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "El donante no existe o está dado de baja: " + donanteId));
+    }
+
     @Transactional
     public void darDeBaja(Long donanteId) {
         Donante donante = buscarPorId(donanteId);

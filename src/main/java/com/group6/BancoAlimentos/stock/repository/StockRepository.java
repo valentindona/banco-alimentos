@@ -31,6 +31,14 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     Optional<Stock> findByProductoIdAndFechaVencimiento(Long productoId, LocalDate fechaVencimiento);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select stock from Stock stock
+            where stock.productoId = :productoId and stock.fechaVencimiento = :fechaVencimiento
+            """)
+    Optional<Stock> buscarPorProductoYVencimientoBloqueado(
+            @Param("productoId") Long productoId, @Param("fechaVencimiento") LocalDate fechaVencimiento);
+
     Optional<Stock> findByProductoIdAndFechaVencimientoIsNull(Long productoId);
 
     List<Stock> findByFechaVencimientoLessThanEqualAndCantidadDisponibleGreaterThanOrderByIdAsc(

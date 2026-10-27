@@ -1,16 +1,22 @@
 package com.group6.BancoAlimentos.producto.repository;
 
 import com.group6.BancoAlimentos.producto.modelo.Producto;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Lock;
 
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     Optional<Producto> findByIdAndActivoTrue(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select producto from Producto producto where producto.id = :id and producto.activo = true")
+    Optional<Producto> buscarActivoBloqueado(@Param("id") Long id);
 
     @Query("""
             select producto from Producto producto
