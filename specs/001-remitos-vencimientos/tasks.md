@@ -134,12 +134,20 @@
 
 **Purpose**: Validate that the complete feature, build, deployment guide, and docs agree.
 
-- [ ] T061 [P] Run the Envers integration regression suite for Producto, Stock, Institucion, Remito, DetalleRemito, and Factura, confirming user hashes and notifications remain unaudited in `src/test/java/com/group6/BancoAlimentos/Config/AuditoriaNegocioTest.java`
-- [ ] T062 [P] Add a test-profile bootstrap fixture for the three roles and representative product/institution/stock/invoice data without production credentials in `src/test/resources/data.sql`
+- [X] T061 [P] Run the Envers integration regression suite for Producto, Stock, Institucion, Remito, DetalleRemito, and Factura, confirming user hashes and notifications remain unaudited in `src/test/java/com/group6/BancoAlimentos/Config/AuditoriaNegocioTest.java`
+- [X] T062 [P] Add a test-profile bootstrap fixture for the three roles and representative product/institution/stock/invoice data without production credentials in `src/test/resources/data.sql`
 - [ ] T063 Validate all Flyway migrations against clean MySQL and H2 test schema, fixing compatibility in `src/main/resources/db/migration/`
-- [ ] T064 Run the full suite using `.\mvnw.cmd clean verify`, correct failures, and record the passing command and expected outcomes in `specs/001-remitos-vencimientos/quickstart.md`
-- [ ] T065 Validate the published Springdoc document against `specs/001-remitos-vencimientos/contracts/openapi.yaml` and correct contract drift in `src/main/resources/openapi.yaml` and `src/main/java/com/group6/BancoAlimentos/Config/ConfiguracionOpenApi.java`
-- [ ] T066 Verify local startup and secret hygiene using `docker-compose.yml`, `.gitignore`, and `specs/001-remitos-vencimientos/quickstart.md`; confirm no secret or credential is tracked
+- [X] T064 Run the full suite using `.\mvnw.cmd clean verify`, correct failures, and record the passing command and expected outcomes in `specs/001-remitos-vencimientos/quickstart.md`
+- [X] T065 Validate the published Springdoc document against `specs/001-remitos-vencimientos/contracts/openapi.yaml` and correct contract drift in `src/main/resources/openapi.yaml` and `src/main/java/com/group6/BancoAlimentos/Config/ConfiguracionOpenApi.java`
+- [X] T066 Verify local startup and secret hygiene using `docker-compose.yml`, `.gitignore`, and `specs/001-remitos-vencimientos/quickstart.md`; confirm no secret or credential is tracked
+
+T063: Flyway V1–V6 se validaron sobre H2 mediante `clean verify`; MySQL no se pudo
+validar porque `MYSQL_TEST_URL` no está definida y esta ejecución no puede iniciar Docker.
+T066: la aplicación arrancó localmente con H2 y ambos documentos API respondieron 200.
+La inspección estática confirmó que Compose exige credenciales por variables de entorno,
+`.gitignore` excluye `.env` y configuración local, y no hay nombres de archivos sensibles
+ni credenciales de producción rastreados. Compose no se inició por la restricción de no
+ejecutar Docker.
 
 ## Dependencies & Execution Order
 

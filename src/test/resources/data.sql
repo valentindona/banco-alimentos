@@ -10,3 +10,14 @@ VALUES (900001, 900001, DATE '2030-12-31', 25.000, 'DISPONIBLE');
 INSERT INTO usuarios (id, nombre_usuario, clave_hash, rol, institucion_id, activo)
 VALUES (900001, 'usuario-fixture', '$2a$10$0wicwWIt1O247XHV1erqrOCBd8IG1UJlark5oczqxWAeVw/59pzWG',
         'USER_DEPOSITO', NULL, TRUE);
+
+INSERT INTO usuarios (id, nombre_usuario, clave_hash, rol, institucion_id, activo)
+VALUES (900002, 'institucional-fixture', '$2a$10$0wicwWIt1O247XHV1erqrOCBd8IG1UJlark5oczqxWAeVw/59pzWG',
+        'USER_INSTITUCIONAL', 900001, TRUE);
+
+INSERT INTO usuarios (id, nombre_usuario, clave_hash, rol, institucion_id, activo)
+VALUES (900003, 'tesoreria-fixture', '$2a$10$0wicwWIt1O247XHV1erqrOCBd8IG1UJlark5oczqxWAeVw/59pzWG',
+        'USER_TESORERIA', NULL, TRUE);
+
+INSERT INTO facturas (id, numero, institucion_id, fecha, estado, importe)
+VALUES (900001, 'F-FIXTURE-900001', 900001, DATE '2030-01-15', 'PENDIENTE', 1250.00);

@@ -3,9 +3,12 @@ package com.group6.BancoAlimentos.Config;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import com.group6.BancoAlimentos.detalleremito.modelo.DetalleRemito;
+import com.group6.BancoAlimentos.factura.modelo.Factura;
 import com.group6.BancoAlimentos.institucion.modelo.EstadoPago;
 import com.group6.BancoAlimentos.institucion.modelo.Institucion;
 import com.group6.BancoAlimentos.institucion.repository.InstitucionRepository;
+import com.group6.BancoAlimentos.notificacion.modelo.Notificacion;
 import com.group6.BancoAlimentos.producto.modelo.Producto;
 import com.group6.BancoAlimentos.producto.repository.ProductoRepository;
 import com.group6.BancoAlimentos.remito.modelo.EstadoRemito;
@@ -65,6 +68,13 @@ class AuditoriaNegocioTest {
     @Commit
     void persisteHistorialDeProductoStockInstitucionYRemito() {
         assertFalse(Usuario.class.isAnnotationPresent(Audited.class));
+        assertFalse(Notificacion.class.isAnnotationPresent(Audited.class));
+        assertTrue(Producto.class.isAnnotationPresent(Audited.class));
+        assertTrue(Stock.class.isAnnotationPresent(Audited.class));
+        assertTrue(Institucion.class.isAnnotationPresent(Audited.class));
+        assertTrue(Remito.class.isAnnotationPresent(Audited.class));
+        assertTrue(DetalleRemito.class.isAnnotationPresent(Audited.class));
+        assertTrue(Factura.class.isAnnotationPresent(Audited.class));
         Institucion institucion = institucionRepository.saveAndFlush(Institucion.builder()
                 .nombre("Institución auditada")
                 .domicilio("Calle 123")
