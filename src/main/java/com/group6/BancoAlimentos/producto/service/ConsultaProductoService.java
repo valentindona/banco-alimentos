@@ -30,6 +30,7 @@ public class ConsultaProductoService {
                 producto.getId(),
                 producto.getNombre(),
                 producto.getDescripcion(),
+                producto.getTipoAlimento(),
                 producto.getUnidadMedida(),
                 producto.isActivo());
     }

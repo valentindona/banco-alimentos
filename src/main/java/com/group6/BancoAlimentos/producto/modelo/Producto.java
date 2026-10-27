@@ -40,6 +40,10 @@ public class Producto {
     @Column(length = 1000)
     private String descripcion;
 
+    @Size(max = 80)
+    @Column(name = "tipo_alimento", length = 80)
+    private String tipoAlimento;
+
     @NotBlank
     @Size(max = 50)
     @Column(name = "unidad_medida", nullable = false, length = 50)

@@ -500,11 +500,14 @@ components:
         cantidad: { type: number }
     Producto:
       type: object
-      required: [id, nombre, unidadMedida, activo]
+      required: [id, nombre, tipoAlimento, unidadMedida, activo]
       properties:
         id: { type: integer, format: int64 }
         nombre: { type: string }
         descripcion: { type: string }
+        tipoAlimento:
+          type: [string, "null"]
+          description: Nulo únicamente para productos legados aún no clasificados.
         unidadMedida: { type: string }
         activo: { type: boolean }
     Existencia:
