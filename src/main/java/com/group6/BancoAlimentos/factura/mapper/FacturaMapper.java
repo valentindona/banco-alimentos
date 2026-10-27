@@ -12,6 +12,8 @@ public class FacturaMapper {
                 factura.getId(),
                 factura.getNumero(),
                 factura.getInstitucionId(),
+                factura.getDonanteId(),
+                factura.getDonacionId(),
                 factura.getFecha(),
                 factura.getEstado(),
                 factura.getImporte());

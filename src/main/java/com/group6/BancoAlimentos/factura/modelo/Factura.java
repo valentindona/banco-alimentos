@@ -38,9 +38,14 @@ public class Factura {
     @Column(nullable = false, length = 80)
     private String numero;
 
-    @NotNull
-    @Column(name = "institucion_id", nullable = false)
+    @Column(name = "institucion_id")
     private Long institucionId;
+
+    @Column(name = "donante_id")
+    private Long donanteId;
+
+    @Column(name = "donacion_id")
+    private Long donacionId;
 
     @NotNull
     @Column(nullable = false)
@@ -50,8 +55,7 @@ public class Factura {
     @Column(nullable = false, length = 30)
     private String estado;
 
-    @NotNull
     @PositiveOrZero
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(precision = 12, scale = 2)
     private BigDecimal importe;
 }

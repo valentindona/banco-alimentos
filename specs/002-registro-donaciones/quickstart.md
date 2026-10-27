@@ -33,9 +33,10 @@ no forman parte de la verificación H2.
    con donación, líneas y comprobante asociado; consultar `/api/stock` y comprobar que
    cada par producto-vencimiento aumentó exactamente por la cantidad recibida.
 2. **Catálogo y producto manual**: consultar `/api/productos`; seleccionar un producto
-   precargado y revisar tipo/unidad; enviar un producto manual completo. Confirmar que
-   ambos se pueden consultar y que cualquier dato de línea confirmado se preserva en el
-   detalle sin cambiar los datos del producto original.
+   precargado y revisar tipo/unidad (leche en litros, harina en kilos y galletitas en
+   paquetes); enviar un producto manual completo. Confirmar que ambos se pueden
+   consultar y que cualquier dato de línea confirmado se preserva en el detalle sin
+   cambiar los datos del producto original.
 3. **Atomicidad**: enviar líneas con cantidad no positiva, vencimiento ausente/pasado,
    producto/donante inexistente o donante inactivo. Esperar error de validación o regla
    de negocio; volver a consultar donaciones, stock y facturas y confirmar que no hay
@@ -44,8 +45,9 @@ no forman parte de la verificación H2.
    Verificar dos líneas históricas y dos existencias correspondientes; una repetición
    del mismo lote suma la cantidad a la existencia única existente.
 5. **Comprobante**: consultar `/api/facturas` por donante y fecha; verificar el vínculo
-   con la donación y el detalle completo. Intentar operaciones de escritura sobre
-   facturas; no deben estar expuestas.
+   con la donación y el detalle completo, estado `EMITIDA`, número igual al ID de
+   Factura e importe nulo. Intentar operaciones de escritura sobre facturas; no deben
+   estar expuestas.
 6. **Filtros**: consultar donantes por nombre; donaciones por donante/fecha/producto/
    vencimiento; productos por nombre/tipo/unidad; stock por producto/fecha; facturas por
    donante/fecha/producto/vencimiento. Verificar que todas las respuestas sean paginadas.

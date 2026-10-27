@@ -92,17 +92,17 @@
 
 ## Supuestos que deben validarse durante la implementación
 
-1. Los nuevos comprobantes conservan los campos requeridos históricamente por Factura
-   con valores neutrales `estado=RECIBIDA` e `importe=0.00`; no representan deuda,
-   precio ni una suma económica de alimentos.
-2. No se especifica un formato de número de comprobante. Se propone generar uno a partir
-   del identificador persistido de la donación, sin alterar los números históricos.
+1. Los comprobantes nuevos usan `estado=EMITIDA` e `importe=null`; no representan deuda,
+   precio ni una suma económica de alimentos. El importe y demás valores de las
+   facturas históricas se conservan.
+2. No se especifica un formato de número de comprobante. Se usa el ID autoincremental
+   de Factura como número visible, sin alterar los números históricos.
 3. Si para una recepción se cambia nombre, tipo o unidad de un producto de catálogo,
    debe crearse/resolverse un Producto separado para que cada existencia tenga una
    única unidad base; no se mutará la ficha original ni se hará conversión automática.
-4. El catálogo seed incluye los tres nombres requeridos. Las clasificaciones
-   (`tipoAlimento`) y unidades iniciales se consideran datos configurables/revisables;
-   la especificación aún no define una taxonomía institucional.
+4. El catálogo seed incluye leche (`Lácteo`, litros), harina (`Harina`, kilos) y
+   galletitas (`Galletitas`, paquetes). Son valores de texto descriptivos: no definen
+   una taxonomía institucional ni implican conversiones.
 5. Productos preexistentes pueden permanecer sin `tipoAlimento` hasta que depósito los
    clasifique; el tipo sí es obligatorio para productos nuevos y recepciones.
 6. Para donantes, se mantiene como obligatorio el nombre y opcionales los datos de

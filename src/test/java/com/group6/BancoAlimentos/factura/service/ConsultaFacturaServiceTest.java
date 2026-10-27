@@ -46,7 +46,7 @@ class ConsultaFacturaServiceTest {
                 .thenReturn(new PageImpl<>(List.of(factura), PageRequest.of(0, 10), 1));
         when(facturaMapper.aRespuesta(factura)).thenReturn(
                 new com.group6.BancoAlimentos.factura.dto.FacturaRespuesta(
-                        10L, "F-10", 9L, factura.getFecha(), "PENDIENTE", factura.getImporte()));
+                        10L, "F-10", 9L, null, null, factura.getFecha(), "PENDIENTE", factura.getImporte()));
 
         var pagina = servicio.listar(9L, desde, hasta, "PENDIENTE", 0, 10);
 

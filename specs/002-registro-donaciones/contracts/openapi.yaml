@@ -581,7 +581,9 @@ components:
       type: object
       properties:
         id: { type: integer, format: int64 }
-        numero: { type: string }
+        numero:
+          type: string
+          description: Para comprobantes de donación coincide con el ID autoincremental de Factura.
         donacionId: { type: integer, format: int64 }
         donanteId: { type: integer, format: int64 }
         fecha: { type: string, format: date }
@@ -644,15 +646,19 @@ components:
       description: Campos institucionales conservados para registros históricos; los recibos nuevos se asocian a donante y donación.
       properties:
         id: { type: integer, format: int64 }
-        numero: { type: string }
+        numero:
+          type: string
+          description: Para comprobantes de donación coincide con el ID autoincremental de Factura.
         institucionId: { type: [integer, "null"], format: int64 }
         donanteId: { type: [integer, "null"], format: int64 }
         donacionId: { type: [integer, "null"], format: int64 }
         fecha: { type: string, format: date }
-        estado: { type: string }
+        estado:
+          type: string
+          description: Los comprobantes de donación se emiten con estado EMITIDA; se conservan estados históricos.
         importe:
-          type: number
-          description: Los comprobantes nuevos usan valor neutral y no representan un importe económico.
+          type: [number, "null"]
+          description: Nulo en comprobantes nuevos; no representa ni calcula un importe económico.
         detalles:
           type: array
           items:

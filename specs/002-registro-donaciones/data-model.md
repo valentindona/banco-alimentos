@@ -102,7 +102,7 @@ de `institucionId`, `numero`, `fecha`, `estado` e `importe` se conservan.
 | Campo | Tipo conceptual | Reglas |
 |-------|-----------------|--------|
 | id | Identificador | Existente. |
-| numero, fecha, estado, importe | Campos existentes | Preservar valores legados. Para comprobantes se proponen estado `RECIBIDA` e importe neutral `0.00`, pendientes de validar como supuesto. |
+| numero, fecha, estado, importe | Campos existentes | Preservar valores legados. Los comprobantes nuevos usan el ID autoincremental como `numero`, estado `EMITIDA` e importe nulo (sin valor económico). |
 | institucionId | Referencia opcional | Conservar para filas existentes; nula en comprobantes de donaciones. |
 | donanteId | Referencia opcional a Donante | Obligatoria para comprobantes nuevos; nula en filas históricas. |
 | donacionId | Referencia opcional a Donacion | Obligatoria para comprobantes nuevos; relación única; nula en filas históricas. |

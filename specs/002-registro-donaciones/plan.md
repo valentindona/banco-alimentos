@@ -53,9 +53,10 @@ de aceptación de la especificación, incluyendo una muestra de hasta 10.000 reg
 - Los controllers exponen DTOs, nunca entidades de persistencia.
 
 **Scale/Scope**: Tres features nuevas de dominio (Donante, Donación e ItemDonacion);
-ampliaciones puntuales de Producto, Stock, Factura, Seguridad y OpenAPI. Catálogo inicial
-con al menos leche, harina y galletitas; demás tipos, unidades y productos quedan sujetos
-a los supuestos enumerados en [research.md](./research.md).
+ampliaciones puntuales de Producto, Stock, Factura, Seguridad y OpenAPI. El catálogo seed
+incluye leche (tipo `Lácteo`, unidad `litros`), harina (tipo `Harina`, unidad `kilos`) y
+galletitas (tipo `Galletitas`, unidad `paquetes`) como valores de texto, sin conversiones
+ni una taxonomía adicional.
 
 ## Constitution Check
 
@@ -183,12 +184,12 @@ se acoplan controllers o repositorios de features distintas.
   de alteración, probar la misma migración con Flyway y el SQL real de H2/MySQL.
 - **Campos heredados de Factura**: la proyección existente exige `numero`, `fecha`,
   `estado` e `importe`; el comprobante de recepción no es fiscal ni monetario. Se
-  propone conservar los valores históricos y, para los recibos nuevos, usar
-  `estado=RECIBIDA` e `importe=0.00` como valores neutrales. No se derivará un importe
-  económico ni se mostrará el comprobante como deuda/cobro. **Supuesto por validar**.
+  conservan los valores históricos y, para los recibos nuevos, se fija `estado=EMITIDA`
+  y se deja `importe` nulo. No se deriva un importe económico ni se muestra el
+  comprobante como deuda/cobro.
 - **Numeración del comprobante**: la especificación no define formato ni consecutivo.
-  Se propone generar un identificador de recepción a partir de la donación, sin alterar
-  los números históricos. **Supuesto por validar antes de implementar unicidad/formato**.
+  Se usa el ID autoincremental de Factura como número visible, sin alterar los números
+  históricos.
 - **Producto de catálogo modificado al recibir**: no cambiar la ficha original ni
   reinterpretar existencias ya registradas. Si se altera nombre, tipo o unidad para una
   recepción, se propone resolver/crear una identidad de Producto separada para que el
@@ -203,10 +204,9 @@ se acoplan controllers o repositorios de features distintas.
 - **Unidad y precisión**: el stock existente usa tres decimales. Se propone rechazar
   cantidades que no puedan representarse en esa precisión y no convertir unidades de
   manera automática; las conversiones no están especificadas. **Supuesto por validar**.
-- **Catálogo inicial**: leche, harina y galletitas están requeridas; sus valores
-  concretos de tipo/unidad y cualquier otro producto se deben cerrar como datos seed
-  revisables, sin inferir un sistema fiscal o nutricional de clasificación. **Supuesto
-  por validar**.
+- **Catálogo inicial**: leche, harina y galletitas usan los valores de tipo/unidad
+  indicados arriba; son datos de texto, sin inferir un sistema fiscal o nutricional de
+  clasificación ni conversiones.
 - **Baja de productos y donantes**: usar desactivación lógica para conservar claves
   foráneas, auditoría e historial. Un donante inactivo no admite nuevas donaciones.
 - **Líneas repetidas del mismo lote**: conservar cada línea en el comprobante y sumar

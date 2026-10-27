@@ -9,6 +9,9 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+    placeholders:
+      facturasInstitucionNullable: "ALTER COLUMN institucion_id SET NULL"
+      facturasImporteNullable: "ALTER COLUMN importe SET NULL"
   sql:
     init:
       mode: always

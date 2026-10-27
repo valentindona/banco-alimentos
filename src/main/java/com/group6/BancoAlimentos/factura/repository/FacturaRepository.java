@@ -5,10 +5,12 @@ import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.Repository;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
 
-public interface FacturaRepository extends Repository<Factura, Long> {
+public interface FacturaRepository extends JpaRepository<Factura, Long> {
+
+    boolean existsByDonacionId(Long donacionId);
 
     @Query("""
             select factura from Factura factura

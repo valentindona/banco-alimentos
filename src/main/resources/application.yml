@@ -11,6 +11,9 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+    placeholders:
+      facturasInstitucionNullable: "MODIFY COLUMN institucion_id BIGINT NULL"
+      facturasImporteNullable: "MODIFY COLUMN importe DECIMAL(12, 2) NULL"
 
 seguridad:
   jwt:
