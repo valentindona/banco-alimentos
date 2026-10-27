@@ -9,7 +9,7 @@ Extensión de la entidad de negocio existente `instituciones`; no se crea una en
 | `id` | Identificador | Existente; único e inmutable. |
 | `nombre` | Texto | Existente; obligatorio, máximo 150 caracteres; no se permite duplicar sin distinguir mayúsculas/minúsculas al crear o cambiar el nombre. |
 | `domicilio` | Texto | Existente; obligatorio, máximo 250 caracteres. |
-| `tipo` | Texto | Nuevo; obligatorio, máximo 80 caracteres; texto libre confirmado por el usuario, normalizado quitando espacios exteriores. Los registros existentes se migran con `Sin especificar` (supuesto de migración). |
+| `tipo` | Texto | Nuevo; nullable en entidad y persistencia para mantener compatibilidad con instituciones históricas; máximo 80 caracteres cuando está presente. Las solicitudes de alta/modificación lo mantienen obligatorio, como define el contrato. Texto libre normalizado quitando espacios exteriores. Los registros existentes se migran con `Sin especificar` (supuesto de migración). |
 | `estadoPago` | Estado controlado | Existente; obligatorio; uno de `AL_DIA`, `EN_DEUDA`, `PARTICULAR`. En una institución nueva se inicializa `AL_DIA` (decisión confirmada). Solo tesorería puede cambiarlo. |
 | `activa` | Booleano | Existente; valor inicial verdadero. La baja cambia el valor a falso; no se borra el registro. |
 

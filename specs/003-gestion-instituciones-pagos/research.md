@@ -10,7 +10,7 @@
 
 ### Agregar tipo de institución
 
-- **Decision**: Incorporar un campo obligatorio `tipo` de texto (máximo 80 caracteres), filtrable por coincidencia exacta tras quitar espacios exteriores. El usuario confirmó texto libre sin catálogo cerrado. Agregarlo a la entidad y a su tabla de auditoría mediante una migración Flyway V8, con backfill `Sin especificar` para datos existentes.
+- **Decision**: Incorporar `tipo` como texto de hasta 80 caracteres, filtrable por coincidencia exacta tras quitar espacios exteriores. La entidad y la columna principal permiten `null` para mantener compatibilidad con instituciones históricas; las solicitudes de alta/modificación conservan la validación obligatoria del contrato. El usuario confirmó texto libre sin catálogo cerrado. Agregarlo a la entidad y a su tabla de auditoría mediante una migración Flyway V8, con backfill `Sin especificar` para datos existentes.
 - **Rationale**: El filtro por tipo forma parte del requisito, pero el esquema y DTO actuales no contienen ese dato. No existe un catálogo de tipos en la solicitud ni en la entidad actual, por lo que el usuario confirmó texto libre como opción de menor alcance. El backfill permite migrar registros sin inventar sus tipos originales.
 - **Alternatives considered**: Omitir el campo y el filtro; descartado porque no cumpliría el criterio de búsqueda por tipo. Crear un catálogo de tipos; descartado porque agregaría administración y decisiones de negocio no pedidas.
 

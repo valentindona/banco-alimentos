@@ -1,6 +1,5 @@
 package com.group6.BancoAlimentos.institucion.modelo;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.group6.BancoAlimentos.institucion.repository.InstitucionRepository;
@@ -17,7 +16,7 @@ class InstitucionRepositoryTest {
     private InstitucionRepository institucionRepository;
 
     @Test
-    void requiereNombreDomicilioYEstadoDePagoPermitido() {
+    void requiereNombreDomicilioTipoYEstadoDePagoPermitido() {
         for (EstadoPago estadoPago : EstadoPago.values()) {
             Institucion institucion = Institucion.builder()
                     .nombre("Institución " + estadoPago)
@@ -28,9 +27,11 @@ class InstitucionRepositoryTest {
             assertTrue(institucionRepository.saveAndFlush(institucion).getId() > 0);
         }
 
-        assertThrows(RuntimeException.class, () -> institucionRepository.saveAndFlush(
-                Institucion.builder().domicilio("Calle de prueba").estadoPago(EstadoPago.AL_DIA).build()));
-        assertThrows(RuntimeException.class, () -> institucionRepository.saveAndFlush(
-                Institucion.builder().nombre("Sin domicilio").estadoPago(EstadoPago.AL_DIA).build()));
+        Institucion institucionSinTipo = Institucion.builder()
+                .nombre("Sin tipo")
+                .domicilio("Calle de prueba")
+                .estadoPago(EstadoPago.AL_DIA)
+                .build();
+        assertTrue(institucionRepository.saveAndFlush(institucionSinTipo).getId() > 0);
     }
 }

@@ -25,8 +25,8 @@ El proyecto Spring Boot, Maven Wrapper, Flyway, H2 de pruebas y la estructura de
 
 **Purpose**: Incorporar el campo requerido por las historias antes de implementar las operaciones.
 
-- [ ] T001 Agregar en `src/test/java/com/group6/BancoAlimentos/institucion/modelo/InstitucionMigracionTest.java` una prueba H2 que parta del esquema V7 con una institución existente, ejecute V8 y compruebe el backfill `Sin especificar`, la obligatoriedad de `tipo` y la columna correspondiente en `instituciones_aud`.
-- [ ] T002 Crear `src/main/resources/db/migration/V8__agregar_tipo_a_instituciones.sql` para agregar `tipo` a `instituciones` y `instituciones_aud`, completar las instituciones existentes con `Sin especificar` y hacer obligatorio el campo; agregar el campo `tipo` a `src/main/java/com/group6/BancoAlimentos/institucion/modelo/Institucion.java` como texto no nulo de hasta 80 caracteres.
+- [X] T001 Agregar en `src/test/java/com/group6/BancoAlimentos/institucion/modelo/InstitucionMigracionTest.java` una prueba H2 que parta del esquema V7 con una institución existente, ejecute V8 y compruebe el backfill `Sin especificar`, la obligatoriedad de `tipo` y la columna correspondiente en `instituciones_aud`.
+- [X] T002 Crear `src/main/resources/db/migration/V8__agregar_tipo_a_instituciones.sql` para agregar `tipo` nullable a `instituciones`, agregarlo a `instituciones_aud` y completar las instituciones existentes con `Sin especificar`; agregar `tipo` a `src/main/java/com/group6/BancoAlimentos/institucion/modelo/Institucion.java` como campo nullable de hasta 80 caracteres, manteniendo obligatoria la validación de las solicitudes según T006.
 
 **Checkpoint**: La migración V8 y el mapeo JPA quedan validados en H2 antes de empezar las historias.
 

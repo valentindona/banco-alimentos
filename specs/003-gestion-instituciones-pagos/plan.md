@@ -87,7 +87,7 @@ src/
 
 ## Assumptions
 
-- **Decisión confirmada**: `tipo` será texto libre obligatorio de hasta 80 caracteres, sin catálogo cerrado.
+- **Decisión confirmada**: `tipo` será texto libre de hasta 80 caracteres, sin catálogo cerrado. La entidad y la columna permiten `null` para mantener compatibilidad con instituciones históricas; la solicitud de alta/modificación conserva la validación obligatoria del contrato.
 - Una nueva migración V8 agregará el campo a `instituciones` y `instituciones_aud`. Las instituciones preexistentes recibirán el valor `Sin especificar`, para que el campo requerido no impida la migración ni invalide datos existentes.
 - **Decisión confirmada**: una institución nueva comenzará con estado `AL_DIA`; tesorería será el único rol que podrá modificarlo después.
 - **Decisión confirmada**: el rol `user_institucional` podrá administrar todas las instituciones, sin restricción a la institución asociada al usuario.

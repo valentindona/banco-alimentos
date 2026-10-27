@@ -46,6 +46,10 @@ public class Institucion {
     @Column(nullable = false, length = 250)
     private String domicilio;
 
+    @Size(max = 80)
+    @Column(length = 80)
+    private String tipo;
+
     @NotNull
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
