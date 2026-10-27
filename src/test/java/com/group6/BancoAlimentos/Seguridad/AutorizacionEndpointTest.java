@@ -58,6 +58,7 @@ class AutorizacionEndpointTest {
 
     @BeforeEach
     void crearCuentasPorRol() {
+        jdbcTemplate.update("DELETE FROM ajustes_stock");
         usuarioRepository.deleteAll();
         jdbcTemplate.update("DELETE FROM facturas");
         institucionRepository.deleteAll();
