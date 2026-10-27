@@ -34,11 +34,11 @@ En producción publicar el build estático y configurar un reverse proxy `/api` 
 
 ## Módulos y acciones
 
-- **USER_DEPOSITO:** productos (alta, edición, baja lógica), donantes (alta, edición, baja lógica), stock (consulta), donaciones (registrar recepción), remitos (borrador, agregar productos y confirmar), ajustes (registrar y consultar), facturas (consulta), notificaciones (consulta), instituciones (consulta) y alta de usuarios.
+- **USER_DEPOSITO:** productos y donantes (alta, listado, edición y baja lógica); stock (consulta); donaciones (registrar recepción con comprobante automático); remitos (crear, editar y eliminar borradores, editar/agregar/quitar artículos y confirmar); ajustes (registrar, consultar, editar y eliminar si no hubo movimientos posteriores del lote); facturas (consulta y generación/reparación idempotente del comprobante de una donación); notificaciones (consulta); instituciones (consulta) y alta de usuarios.
 - **USER_INSTITUCIONAL:** instituciones (consulta, alta, edición y baja lógica).
 - **USER_TESORERIA:** instituciones (consulta y cambio de estado de pago).
 
-Los listados paginados muestran 20 registros por página. Los formularios se limitan a las operaciones actualmente expuestas por la API; por ejemplo, facturas y stock son de consulta. Ver `src/main/resources/openapi.yaml` y los contratos bajo `specs/*/contracts/` para DTOs y paginación.
+Los listados paginados muestran 20 registros por página. Los formularios de donaciones, remitos, ajustes y facturas permiten seleccionar las referencias por nombre y muestran también su ID; los lotes incluyen producto, vencimiento y cantidad disponible. La generación de un comprobante devuelve el existente si ya fue emitido. Las donaciones confirmadas, facturas emitidas, stock, usuarios y notificaciones no tienen edición o eliminación genérica: sus cambios tienen efectos contables/de inventario o la API no expone esas operaciones. Los remitos solo se pueden cambiar mientras están en borrador. Editar o eliminar un ajuste requiere que el historial auditado del lote no tenga cambios posteriores, y la baja restaura el saldo previo. Ver `src/main/resources/openapi.yaml` y los contratos bajo `specs/*/contracts/` para DTOs y paginación.
 
 ## Próximos pasos
 

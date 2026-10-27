@@ -117,4 +117,72 @@ class AjusteServiceTest {
         assertThrows(ReglaNegocioException.class, () -> servicio.registrar(
                 new AjusteSolicitud(26L, TipoAjuste.BAJA, BigDecimal.ONE, "Motivo"), usuario));
     }
+
+    @Test
+    void editaUnAjusteYActualizaElSaldoDesdeElSnapshotOriginal() {
+        Ajuste ajuste = ajuste();
+        ajuste.actualizar(TipoAjuste.BAJA, new BigDecimal("10.000"), new BigDecimal("7.500"), "Motivo anterior");
+        stock.setCantidadDisponible(new BigDecimal("7.500"));
+        when(ajusteRepository.findById(44L)).thenReturn(Optional.of(ajuste));
+
+        var actualizado = servicio.actualizar(
+                44L, new AjusteSolicitud(25L, TipoAjuste.BAJA, new BigDecimal("3.000"), "  Motivo nuevo "));
+
+        assertEquals(new BigDecimal("10.000"), actualizado.cantidadAnterior());
+        assertEquals(new BigDecimal("7.000"), actualizado.cantidadNueva());
+        assertEquals("Motivo nuevo", actualizado.motivo());
+        assertEquals(new BigDecimal("7.000"), stock.getCantidadDisponible());
+        verify(stockRepository).saveAndFlush(stock);
+        verify(ajusteRepository).save(ajuste);
+    }
+
+    @Test
+    void noPermiteEditarNiEliminarAjustesConMovimientosPosteriores() {
+        Ajuste ajuste = ajuste();
+        stock.setCantidadDisponible(new BigDecimal("6.500"));
+        when(ajusteRepository.findById(44L)).thenReturn(Optional.of(ajuste));
+
+        assertThrows(ReglaNegocioException.class, () -> servicio.actualizar(
+                44L, new AjusteSolicitud(25L, TipoAjuste.BAJA, BigDecimal.ONE, "Cambio")));
+        assertThrows(ReglaNegocioException.class, () -> servicio.eliminar(44L));
+        verify(stockRepository, never()).saveAndFlush(any());
+        verify(ajusteRepository, never()).save(any());
+        verify(ajusteRepository, never()).delete(any());
+    }
+
+    @Test
+    void detectaMovimientosPosterioresAunqueElSaldoHayaVueltoAlValorAnterior() {
+        Ajuste ajuste = ajuste();
+        stock.setCantidadDisponible(new BigDecimal("7.500"));
+        when(ajusteRepository.findById(44L)).thenReturn(Optional.of(ajuste));
+        when(ajusteRepository.contarMovimientosStockPosteriores(44L, 25L)).thenReturn(1);
+
+        assertThrows(ReglaNegocioException.class,
+                () -> servicio.actualizar(44L, new AjusteSolicitud(25L, TipoAjuste.BAJA, BigDecimal.ONE, "Cambio")));
+        assertThrows(ReglaNegocioException.class, () -> servicio.eliminar(44L));
+        verify(stockRepository, never()).saveAndFlush(any());
+        verify(ajusteRepository, never()).save(any());
+        verify(ajusteRepository, never()).delete(any());
+    }
+
+    @Test
+    void eliminaAjusteYRevierteElSaldoAnterior() {
+        Ajuste ajuste = ajuste();
+        stock.setCantidadDisponible(new BigDecimal("7.500"));
+        when(ajusteRepository.findById(44L)).thenReturn(Optional.of(ajuste));
+
+        servicio.eliminar(44L);
+
+        assertEquals(new BigDecimal("10.000"), stock.getCantidadDisponible());
+        verify(stockRepository).saveAndFlush(stock);
+        verify(ajusteRepository).delete(ajuste);
+    }
+
+    private Ajuste ajuste() {
+        Ajuste ajuste = new Ajuste(
+                25L, 7L, LocalDate.of(2026, 10, 1), 9L, java.time.Instant.now(),
+                TipoAjuste.BAJA, new BigDecimal("10.000"), new BigDecimal("7.500"), "Motivo");
+        org.springframework.test.util.ReflectionTestUtils.setField(ajuste, "id", 44L);
+        return ajuste;
+    }
 }

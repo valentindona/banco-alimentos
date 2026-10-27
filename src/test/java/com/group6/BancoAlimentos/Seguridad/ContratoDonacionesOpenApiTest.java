@@ -17,7 +17,7 @@ class ContratoDonacionesOpenApiTest {
             Set.of("get", "post", "put", "delete", "patch", "options", "head");
 
     @Test
-    void contratoDeFeatureEstaIntegradoConRolesPaginacionYFacturasSoloLectura() throws Exception {
+    void contratoDeFeatureEstaIntegradoConRolesPaginacionYGeneracionSeguraDeFacturas() throws Exception {
         String contrato = Files.readString(Path.of(
                 "specs", "002-registro-donaciones", "contracts", "openapi.yaml"));
         String integrado = Files.readString(Path.of("src", "main", "resources", "openapi.yaml"));
@@ -47,7 +47,11 @@ class ContratoDonacionesOpenApiTest {
         String facturas = bloqueRuta(integrado, "/facturas");
         assertNotNull(facturas);
         assertFalse(Pattern.compile("(?m)^    (post|put|patch|delete):").matcher(facturas).find(),
-                "La API no debe exponer escritura de facturas");
+                "La API no debe exponer modificaciones arbitrarias de facturas");
+        String generacion = bloqueRuta(integrado, "/facturas/generacion");
+        assertNotNull(generacion);
+        assertTrue(generacion.contains("post:"));
+        assertTrue(generacion.contains("operationId: generarComprobanteDonacion"));
         for (String ruta : Set.of("/donantes", "/donaciones", "/productos", "/stock", "/facturas")) {
             String operacion = bloqueOperacion(bloqueRuta(integrado, ruta), "get");
             assertNotNull(operacion);

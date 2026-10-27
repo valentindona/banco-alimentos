@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
-import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.envers.AuditTable;
 import org.hibernate.envers.Audited;
@@ -21,7 +20,6 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "ajustes_stock")
 @Audited
 @AuditTable(value = "ajustes_stock_aud")
-@Immutable
 public class Ajuste {
 
     @Id
@@ -45,16 +43,16 @@ public class Ajuste {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 20, updatable = false)
+    @Column(nullable = false, length = 20)
     private TipoAjuste tipo;
 
-    @Column(name = "cantidad_anterior", nullable = false, precision = 12, scale = 3, updatable = false)
+    @Column(name = "cantidad_anterior", nullable = false, precision = 12, scale = 3)
     private BigDecimal cantidadAnterior;
 
-    @Column(name = "cantidad_nueva", nullable = false, precision = 12, scale = 3, updatable = false)
+    @Column(name = "cantidad_nueva", nullable = false, precision = 12, scale = 3)
     private BigDecimal cantidadNueva;
 
-    @Column(nullable = false, columnDefinition = "text", updatable = false)
+    @Column(nullable = false, columnDefinition = "text")
     private String motivo;
 
     protected Ajuste() {
@@ -119,5 +117,12 @@ public class Ajuste {
 
     public String getMotivo() {
         return motivo;
+    }
+
+    public void actualizar(TipoAjuste tipo, BigDecimal cantidadAnterior, BigDecimal cantidadNueva, String motivo) {
+        this.tipo = tipo;
+        this.cantidadAnterior = cantidadAnterior;
+        this.cantidadNueva = cantidadNueva;
+        this.motivo = motivo;
     }
 }

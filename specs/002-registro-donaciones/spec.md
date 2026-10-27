@@ -171,6 +171,10 @@ coinciden y que las líneas de producto mantengan sus datos de vencimiento.
   remitos, confirmación de entregas ni control de vencimientos.
 - **FR-018**: Los listados MUST presentar resultados paginados y respetar los filtros
   solicitados.
+- **FR-019**: El rol de depósito MUST poder generar el comprobante faltante de una
+  donación existente. La operación MUST devolver sin duplicar el comprobante cuando
+  ya exista, y las consultas de donaciones MUST permitir identificar registros sin
+  comprobante para repararlos.
 
 ### Key Entities
 

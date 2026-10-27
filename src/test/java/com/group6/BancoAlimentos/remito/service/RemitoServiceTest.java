@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 
 import com.group6.BancoAlimentos.Common.excepcion.ReglaNegocioException;
 import com.group6.BancoAlimentos.detalleremito.modelo.DetalleRemito;
@@ -147,7 +148,8 @@ class RemitoServiceTest {
         assertThrows(ReglaNegocioException.class,
                 () -> servicio.agregarDetalle(13L, 11L, BigDecimal.ZERO));
 
-        when(detalleRepository.existsByRemitoIdAndStockId(13L, 11L)).thenReturn(true);
+        when(detalleRepository.findByRemitoIdOrderByStockIdAsc(13L))
+                .thenReturn(java.util.List.of(DetalleRemito.builder().id(17L).stockId(11L).build()));
         assertThrows(ReglaNegocioException.class,
                 () -> servicio.agregarDetalle(13L, 11L, BigDecimal.ONE));
     }
@@ -159,5 +161,79 @@ class RemitoServiceTest {
 
         assertThrows(ReglaNegocioException.class,
                 () -> servicio.agregarDetalle(13L, 11L, BigDecimal.ONE));
+    }
+
+    @Test
+    void actualizaBorradorYRefrescaElSnapshotInstitucional() {
+        when(remitoRepository.buscarPorIdBloqueado(13L)).thenReturn(Optional.of(remito));
+        when(institucionRepository.findById(5L)).thenReturn(Optional.of(institucion));
+        when(remitoRepository.save(any(Remito.class))).thenAnswer(invocacion -> invocacion.getArgument(0));
+        LocalDate nuevaFecha = LocalDate.now().plusDays(5);
+
+        Remito actualizado = servicio.actualizarBorrador(13L, 5L, nuevaFecha);
+
+        assertEquals("Institución", actualizado.getInstitucionNombre());
+        assertEquals("Calle 123", actualizado.getInstitucionDomicilio());
+        assertEquals(nuevaFecha, actualizado.getFechaEntrega());
+        verify(remitoRepository).save(remito);
+    }
+
+    @Test
+    void noModificaNiEliminaRemitosConfirmados() {
+        remito.setEstado(EstadoRemito.CONFIRMADO);
+        when(remitoRepository.buscarPorIdBloqueado(13L)).thenReturn(Optional.of(remito));
+
+        assertThrows(ReglaNegocioException.class,
+                () -> servicio.actualizarBorrador(13L, 5L, LocalDate.now().plusDays(5)));
+        assertThrows(ReglaNegocioException.class, () -> servicio.eliminarBorrador(13L));
+        verify(remitoRepository, never()).delete(any(Remito.class));
+    }
+
+    @Test
+    void actualizaArticuloDeUnBorradorValidandoExistenciaYProducto() {
+        DetalleRemito detalle = DetalleRemito.builder()
+                .id(17L)
+                .remitoId(13L)
+                .stockId(11L)
+                .productoId(8L)
+                .fechaVencimiento(stock.getFechaVencimiento())
+                .productoNombre("Arroz")
+                .cantidad(new BigDecimal("2.000"))
+                .build();
+        when(remitoRepository.buscarPorIdBloqueado(13L)).thenReturn(Optional.of(remito));
+        when(detalleRepository.findByIdAndRemitoId(17L, 13L)).thenReturn(Optional.of(detalle));
+        when(stockRepository.findById(11L)).thenReturn(Optional.of(stock));
+        when(productoRepository.findById(8L)).thenReturn(Optional.of(producto));
+        when(detalleRepository.findByRemitoIdOrderByStockIdAsc(13L)).thenReturn(java.util.List.of(detalle));
+        when(detalleRepository.save(any(DetalleRemito.class)))
+                .thenAnswer(invocacion -> invocacion.getArgument(0));
+
+        DetalleRemito actualizado = servicio.actualizarDetalle(13L, 17L, 11L, new BigDecimal("3.000"));
+
+        assertEquals(new BigDecimal("3.000"), actualizado.getCantidad());
+        verify(detalleRepository).save(detalle);
+    }
+
+    @Test
+    void eliminaSoloArticulosDeRemitosBorrador() {
+        DetalleRemito detalle = DetalleRemito.builder().id(17L).remitoId(13L).build();
+        when(remitoRepository.buscarPorIdBloqueado(13L)).thenReturn(Optional.of(remito));
+        when(detalleRepository.findByIdAndRemitoId(17L, 13L)).thenReturn(Optional.of(detalle));
+
+        servicio.eliminarDetalle(13L, 17L);
+
+        verify(detalleRepository).delete(detalle);
+    }
+
+    @Test
+    void eliminaBorradorYsusArticulosSinAfectarElStock() {
+        DetalleRemito detalle = DetalleRemito.builder().id(17L).remitoId(13L).build();
+        when(remitoRepository.buscarPorIdBloqueado(13L)).thenReturn(Optional.of(remito));
+        when(detalleRepository.findByRemitoIdOrderByStockIdAsc(13L)).thenReturn(java.util.List.of(detalle));
+
+        servicio.eliminarBorrador(13L);
+
+        verify(detalleRepository).deleteAll(java.util.List.of(detalle));
+        verify(remitoRepository).delete(remito);
     }
 }

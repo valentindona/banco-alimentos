@@ -65,6 +65,22 @@ class FacturaDonacionServiceTest {
         assertNotNull(comprobante.getId());
     }
 
+    @Test
+    void generaComprobanteFaltantePeroNoDuplicaElQueYaExiste() {
+        Long donanteId = crearDonante();
+        Long donacionId = crearDonacion(donanteId);
+
+        var primero = facturaService.generarParaDonacion(donacionId);
+        var segundo = facturaService.generarParaDonacion(donacionId);
+
+        assertEquals(false, primero.existente());
+        assertEquals(true, segundo.existente());
+        assertEquals(primero.factura().getId(), segundo.factura().getId());
+        assertEquals(
+                1,
+                jdbc.queryForObject("SELECT COUNT(*) FROM facturas WHERE donacion_id = ?", Integer.class, donacionId));
+    }
+
     private Long crearDonante() {
         jdbc.update("INSERT INTO donantes (nombre, activo) VALUES ('Donante de prueba', TRUE)");
         return jdbc.queryForObject("SELECT MAX(id) FROM donantes", Long.class);

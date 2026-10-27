@@ -3,15 +3,33 @@ package com.group6.BancoAlimentos.ajuste.repository;
 import com.group6.BancoAlimentos.ajuste.modelo.Ajuste;
 import com.group6.BancoAlimentos.ajuste.modelo.TipoAjuste;
 import java.time.Instant;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.repository.Repository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.repository.Repository;
 
 public interface AjusteRepository extends Repository<Ajuste, Long> {
 
     Ajuste save(Ajuste ajuste);
+
+    Optional<Ajuste> findById(Long id);
+
+    void delete(Ajuste ajuste);
+
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM stock_aud stockAudit
+            WHERE stockAudit.id = :stockId
+              AND stockAudit.REV > (
+                  SELECT COALESCE(MAX(ajusteAudit.REV), 0)
+                  FROM ajustes_stock_aud ajusteAudit
+                  WHERE ajusteAudit.id = :ajusteId
+              )
+            """, nativeQuery = true)
+    int contarMovimientosStockPosteriores(
+            @Param("ajusteId") Long ajusteId, @Param("stockId") Long stockId);
 
     @Query("""
             select ajuste from Ajuste ajuste

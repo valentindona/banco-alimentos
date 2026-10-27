@@ -9,9 +9,9 @@
 
 ## Decisión: registro de negocio dedicado más Envers
 
-- **Decisión**: persistir una entidad `Ajuste` append-only con autor, fecha/hora, referencias e instantánea del lote, tipo, saldo anterior/nuevo y motivo. Anotar la entidad con `@Audited` y mantener su tabla de Envers. No exponer actualizaciones ni eliminaciones en service, repository o API.
-- **Rationale**: el requisito exige un historial consultable por campos del evento de dominio. Envers aporta revisiones del estado persistido, pero no sustituye el registro de negocio con motivo y cantidades semánticas. La entidad de stock ya está auditada.
-- **Alternatives considered**: confiar solo en Envers (no ofrece el contrato de consulta e inmutabilidad del evento solicitado); modelar todo stock como ledger de eventos (cambio arquitectónico más amplio que excede esta feature); añadir triggers de DB (no están en el patrón vigente y no se requieren para evitar mutaciones desde la aplicación).
+- **Decisión**: persistir una entidad `Ajuste` con autor, fecha/hora, referencias e instantánea del lote, tipo, saldo anterior/nuevo y motivo. Envers audita inserciones, ediciones y eliminaciones. La edición y baja solo se permiten cuando no hay revisiones de stock posteriores al ajuste y el saldo actual coincide con su snapshot.
+- **Rationale**: el requisito exige un historial consultable por campos del evento de dominio y permitir corregir ajustes sin sobrescribir movimientos posteriores. Envers conserva las versiones previas; el registro de negocio mantiene motivo y cantidades semánticas.
+- **Alternatives considered**: confiar solo en Envers (no ofrece el contrato de consulta y motivo del evento); permitir cambios sin validar movimientos posteriores (puede sobrescribir el stock); modelar todo stock como ledger de eventos (cambio arquitectónico más amplio que excede esta feature); añadir triggers de DB (no están en el patrón vigente).
 - **Fuente**: [Hibernate ORM User Guide — Envers](https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html#envers).
 
 ## Decisión: reutilizar el identificador de stock para bloquear el lote
@@ -28,15 +28,15 @@
 
 ## Decisión: catálogo HTTP restringido a depósito y paginado
 
-- **Decisión**: feature `ajuste`; `POST /api/ajustes` crea ajustes; `GET /api/ajustes` lista con los filtros de la feature y paginación existente (`pagina`, `tamano`, máximo 100). La autorización se declara en `ConfiguracionSeguridad` para ambos métodos y no se crean rutas PUT/DELETE.
+- **Decisión**: feature `ajuste`; `POST /api/ajustes` crea, `GET /api/ajustes` lista, `PUT /api/ajustes/{ajusteId}` edita y `DELETE /api/ajustes/{ajusteId}` revierte/baja un ajuste. Las mutaciones requieren que Envers no tenga revisiones de stock posteriores. La autorización se declara en `ConfiguracionSeguridad` para cada método.
 - **Rationale**: sigue el estilo de `/api/stock`, `PaginaRespuesta`, la configuración central de Spring Security y los nombres de dominio en español. Los filtros se combinan con AND.
-- **Alternatives considered**: un recurso editable o genérico de movimientos (no refleja la semántica inmutable y acotada solicitada); una respuesta paginada nueva (duplicaría `PaginaRespuesta`).
+- **Alternatives considered**: permitir cambios sin revisar el historial de stock (podría sobrescribir movimientos posteriores); una respuesta paginada nueva (duplicaría `PaginaRespuesta`).
 - **Fuentes de patrón**: `stock/controller/StockController`, `Common/respuesta/Paginacion`, `Common/respuesta/PaginaRespuesta`, `Security/ConfiguracionSeguridad`.
 
 ## Decisiones de validación y persistencia observadas en el repositorio
 
 - `Stock.cantidadDisponible` es `DECIMAL(12,3)` y la migración V3 ya impide valores negativos; se reutilizan esa precisión, la escala y `ReglaNegocioException`.
-- La tabla `stock` relaciona el producto y la migración V4 relaciona detalles con stock. La migración nueva es V9, posterior a V8, con las tablas `ajustes_stock` y `ajustes_stock_aud`, una FK a stock/producto/usuario y campos de auditoría Envers.
+- La tabla `stock` relaciona el producto y la migración V4 relaciona detalles con stock. V9 crea `ajustes_stock` y `ajustes_stock_aud`; V10 retira el constraint de tipo mal escrito sin reescribir V9. El enum y la validación del service limitan las escrituras de la API a los tipos admitidos.
 - La fecha/hora y el usuario se extraen del servidor y `UsuarioAutenticado`; nunca se aceptan como atributos del request.
 - El perfil de pruebas ya ejecuta Flyway sobre H2 en modo MySQL y valida el esquema con Hibernate. No se necesita dependencia adicional.
 
@@ -46,4 +46,4 @@
 - El usuario se filtra por ID, y un rango de fechas inclusivo se evalúa en UTC porque el sistema guarda `Instant` y no define zona comercial.
 - El request expresa `cantidad` como valor objetivo para `CORRECCION` y como cantidad a descontar para `BAJA`; para ambas operaciones se exige número positivo salvo corrección a cero. La precisión máxima es tres decimales, conforme al stock.
 - La longitud máxima del motivo y la política para ajustes de stock de productos inactivos no están establecidas por la especificación. Se deben validar con la implementación/convenciones existentes antes de fijar restricciones adicionales. Mientras tanto, no son criterios de negocio asumidos.
-- La inmutabilidad no añade protección frente a escrituras SQL externas: no hay evidencia de que el proyecto gestione permisos de escritura granulares o triggers append-only.
+- Envers conserva las versiones de la aplicación, pero no protege frente a escrituras SQL externas: el proyecto no gestiona permisos granulares ni triggers.

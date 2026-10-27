@@ -146,10 +146,11 @@
                           [ngModel]="formValues()[field.name] ?? ''"
                           (ngModelChange)="updateFormValue(field.name, $event)"
                           [required]="field.required ?? false"
+                          [disabled]="field.disabled ?? false"
                         >
                           <option value="" disabled>Seleccioná una opción</option>
                           @for (option of field.options ?? []; track option) {
-                            <option [value]="option">{{ option }}</option>
+                            <option [value]="option.value">{{ option.label }}</option>
                           }
                         </select>
                       } @else if (field.type === 'textarea') {
@@ -173,7 +174,10 @@
                             (field.name === 'institucionId' &&
                               formValues()['rol'] === 'USER_INSTITUCIONAL')
                           "
-                          [min]="field.type === 'number' ? '0.001' : null"
+                          [min]="minimumValue(field)"
+                          [step]="stepValue(field)"
+                          [minlength]="field.minLength ?? null"
+                          [maxlength]="field.maxLength ?? null"
                         />
                       }
                       @if (field.hint) {
@@ -193,16 +197,19 @@
                     @for (item of donationItems(); track $index; let itemIndex = $index) {
                       <div class="donation-item-row">
                         <div class="form-field">
-                          <label [for]="'donation-product-' + itemIndex">ID del producto</label>
-                          <input
+                          <label [for]="'donation-product-' + itemIndex">Producto</label>
+                          <select
                             [id]="'donation-product-' + itemIndex"
-                            type="number"
-                            min="1"
                             required
                             [name]="'donation-product-' + itemIndex"
                             [ngModel]="item.productoId"
                             (ngModelChange)="updateDonationItem(itemIndex, 'productoId', $event)"
-                          />
+                          >
+                            <option value="" disabled>Seleccioná un producto</option>
+                            @for (option of lookupOptions()['productoId'] ?? []; track option.value) {
+                              <option [value]="option.value">{{ option.label }}</option>
+                            }
+                          </select>
                         </div>
                         <div class="form-field">
                           <label [for]="'donation-quantity-' + itemIndex">Cantidad</label>
@@ -253,6 +260,12 @@
                   <p class="form-note">
                     Para cuentas institucionales se requiere un ID de institución. La contraseña
                     debe tener al menos 12 caracteres.
+                  </p>
+                }
+                @if (activeModule()?.key === 'facturas') {
+                  <p class="form-note">
+                    Al registrar una donación se emite su comprobante automáticamente. Esta acción
+                    también permite generar comprobantes faltantes y no duplica los existentes.
                   </p>
                 }
                 <div class="form-actions">
@@ -307,14 +320,42 @@
                       <p>{{ detail }}</p>
                     }
                   </div>
+                  @if (activeModule()?.key === 'remitos' && remitoDetails(row).length > 0) {
+                    <div class="remito-lines">
+                      <strong>Artículos</strong>
+                      @for (detail of remitoDetails(row); track rowId(detail)) {
+                        <div class="remito-line">
+                          <span>
+                            {{ detail['productoNombre'] }} — {{ detail['cantidad'] }}
+                            · lote #{{ detail['stockId'] }} · vence {{ detail['fechaVencimiento'] }}
+                          </span>
+                          @if (canManageRemito(row)) {
+                            <div class="record-actions">
+                              <button
+                                class="secondary-button"
+                                (click)="openRemitoDetailForm(row, detail)"
+                              >
+                                Editar artículo
+                              </button>
+                              <button class="danger-button" (click)="deactivateRemitoDetail(row, detail)">
+                                Quitar
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
                   @if (activeModule()?.key === 'remitos' && canManageRemito(row)) {
                     <div class="record-actions">
+                      <button class="secondary-button" (click)="openEditForm(row)">Editar remito</button>
                       <button class="secondary-button" (click)="openRemitoDetailForm(row)">
                         Agregar producto
                       </button>
                       <button class="primary-button compact-button" (click)="confirmRemito(row)">
                         Confirmar
                       </button>
+                      <button class="danger-button" (click)="deactivate(row)">Eliminar borrador</button>
                     </div>
                   } @else if (canChangePayment(row)) {
                     <div class="record-actions">
@@ -328,8 +369,17 @@
                         <button class="secondary-button" (click)="openEditForm(row)">Editar</button>
                       }
                       @if (canDeactivateRow(row)) {
-                        <button class="danger-button" (click)="deactivate(row)">Dar de baja</button>
+                        <button class="danger-button" (click)="deactivate(row)">
+                          {{ activeModule()?.key === 'ajustes' ? 'Eliminar ajuste' : 'Dar de baja' }}
+                        </button>
                       }
+                    </div>
+                  }
+                  @if (canGenerateInvoice(row)) {
+                    <div class="record-actions">
+                      <button class="primary-button compact-button" (click)="generateInvoice(row)">
+                        Generar comprobante
+                      </button>
                     </div>
                   }
                 </article>

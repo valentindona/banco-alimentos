@@ -1,6 +1,9 @@
 package com.group6.BancoAlimentos.factura.service;
 
 import com.group6.BancoAlimentos.Common.excepcion.ReglaNegocioException;
+import com.group6.BancoAlimentos.Common.excepcion.RecursoNoEncontradoException;
+import com.group6.BancoAlimentos.donacion.modelo.Donacion;
+import com.group6.BancoAlimentos.donacion.repository.DonacionRepository;
 import com.group6.BancoAlimentos.factura.modelo.Factura;
 import com.group6.BancoAlimentos.factura.repository.FacturaRepository;
 import java.time.LocalDate;
@@ -14,9 +17,27 @@ public class FacturaService {
     private static final String ESTADO_EMITIDA = "EMITIDA";
 
     private final FacturaRepository facturaRepository;
+    private final DonacionRepository donacionRepository;
 
-    public FacturaService(FacturaRepository facturaRepository) {
+    public FacturaService(FacturaRepository facturaRepository, DonacionRepository donacionRepository) {
         this.facturaRepository = facturaRepository;
+        this.donacionRepository = donacionRepository;
+    }
+
+    @Transactional
+    public ResultadoGeneracion generarParaDonacion(Long donacionId) {
+        if (donacionId == null || donacionId <= 0) {
+            throw new ReglaNegocioException("La donación indicada no es válida.");
+        }
+        Donacion donacion = donacionRepository.buscarPorIdBloqueado(donacionId)
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "No se encontró la donación " + donacionId));
+        var comprobanteExistente = facturaRepository.findByDonacionId(donacionId);
+        if (comprobanteExistente.isPresent()) {
+            return new ResultadoGeneracion(comprobanteExistente.get(), true);
+        }
+        return new ResultadoGeneracion(
+                emitir(donacion.getDonante().getId(), donacion.getId(), donacion.getFecha()), false);
     }
 
     @Transactional
@@ -38,4 +59,6 @@ public class FacturaService {
         factura.setNumero(factura.getId().toString());
         return facturaRepository.saveAndFlush(factura);
     }
+
+    public record ResultadoGeneracion(Factura factura, boolean existente) {}
 }

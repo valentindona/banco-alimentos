@@ -18,12 +18,12 @@ description: "Tareas de implementación para ajustes manuales de stock"
 
 **Propósito**: Crear primero la persistencia del evento histórico; esta fase bloquea las operaciones y consultas de las historias.
 
-**Criterio de prueba independiente**: Flyway aplica V9 en H2 y crea las tablas de negocio/auditoría, claves foráneas, restricciones e índices; la entidad persiste un evento inmutable y Envers registra su revisión.
+**Criterio de prueba independiente**: Flyway aplica V9 y V10 en H2 y crea las tablas de negocio/auditoría, claves foráneas, restricciones de saldo e índices; Envers registra altas, ediciones y bajas.
 
-- [X] T001 Agregar `AjusteMigracionTest` en `src/test/java/com/group6/BancoAlimentos/ajuste/migracion/AjusteMigracionTest.java` para verificar con Flyway/H2 que V9 crea `ajustes_stock`, `ajustes_stock_aud`, las FKs a stock/productos/usuarios y REVINFO, las restricciones de tipo/saldos y los índices de filtros.
+- [X] T001 Agregar `AjusteMigracionTest` en `src/test/java/com/group6/BancoAlimentos/ajuste/migracion/AjusteMigracionTest.java` para verificar con Flyway/H2 que V9 y V10 crean `ajustes_stock`, `ajustes_stock_aud`, las FKs, REVINFO, la restricción de saldos y los índices, y que permiten los tipos válidos.
 - [X] T002 Crear `V9__crear_ajustes_stock.sql` en `src/main/resources/db/migration/V9__crear_ajustes_stock.sql`, siguiendo el patrón Envers existente, con columnas y snapshots del modelo, `DECIMAL(12,3)`, `motivo` sin límite máximo de negocio, FKs que impidan borrar referencias, restricciones de saldo/tipo e índices para producto, vencimiento, fecha/hora, usuario y tipo.
-- [X] T003 Agregar `AjusteRepositoryTest` en `src/test/java/com/group6/BancoAlimentos/ajuste/repository/AjusteRepositoryTest.java` para comprobar persistencia de los snapshots, la inserción Envers y que la entidad de escritura no permita mutar ni borrar eventos.
-- [X] T004 Crear `Ajuste`, `TipoAjuste` y el repositorio de solo inserción/consulta en `src/main/java/com/group6/BancoAlimentos/ajuste/modelo/Ajuste.java`, `src/main/java/com/group6/BancoAlimentos/ajuste/modelo/TipoAjuste.java` y `src/main/java/com/group6/BancoAlimentos/ajuste/repository/AjusteRepository.java`; usar `@Audited` y `@Immutable`, no exponer setters ni operaciones de actualización/borrado, y persistir autor, fecha UTC, stockId, producto/vencimiento snapshot, tipo, cantidades y motivo.
+- [X] T003 Agregar `AjusteRepositoryTest` en `src/test/java/com/group6/BancoAlimentos/ajuste/repository/AjusteRepositoryTest.java` para comprobar persistencia de snapshots y revisiones Envers, y que la entidad solo cambie mediante operaciones de dominio controladas.
+- [X] T004 Crear `Ajuste`, `TipoAjuste` y el repositorio en `src/main/java/com/group6/BancoAlimentos/ajuste/modelo/Ajuste.java`, `src/main/java/com/group6/BancoAlimentos/ajuste/modelo/TipoAjuste.java` y `src/main/java/com/group6/BancoAlimentos/ajuste/repository/AjusteRepository.java`; usar `@Audited`, no exponer setters y persistir autor, fecha UTC, stockId, snapshot, tipo, cantidades y motivo.
 
 ---
 
@@ -41,9 +41,9 @@ description: "Tareas de implementación para ajustes manuales de stock"
 ### Implementación de bajas
 
 - [X] T007 [US1] Crear `AjusteSolicitud` y `AjusteRespuesta` en `src/main/java/com/group6/BancoAlimentos/ajuste/dto/AjusteSolicitud.java` y `src/main/java/com/group6/BancoAlimentos/ajuste/dto/AjusteRespuesta.java`; validar en el borde `stockId`, `tipo`, `cantidad` y motivo no vacío, sin aceptar usuario ni fecha desde el cuerpo.
-- [X] T008 [US1] Crear `AjusteMapper` en `src/main/java/com/group6/BancoAlimentos/ajuste/mapper/AjusteMapper.java` para convertir entre la entidad inmutable y los DTOs, incluyendo cantidad anterior/nueva, autor y snapshot sin exponer entidades JPA.
+- [X] T008 [US1] Crear `AjusteMapper` en `src/main/java/com/group6/BancoAlimentos/ajuste/mapper/AjusteMapper.java` para convertir entre la entidad auditada y los DTOs, incluyendo cantidad anterior/nueva, autor y snapshot sin exponer entidades JPA.
 - [X] T009 [US1] Implementar el caso BAJA en `src/main/java/com/group6/BancoAlimentos/ajuste/service/AjusteService.java`: usar una sola transacción, cargar `Stock` por `stockId` con el bloqueo pesimista existente antes de leer el saldo, obtener usuario de `UsuarioAutenticado` y hora UTC del servidor, validar cantidad positiva no superior al saldo, recortar/validar motivo, actualizar solo cantidad y guardar el evento; cualquier error debe revertir ambas escrituras.
-- [X] T010 [US1] Crear `AjusteController` en `src/main/java/com/group6/BancoAlimentos/ajuste/controller/AjusteController.java` con `POST /api/ajustes`, `@Valid`, delegación al service y respuesta 201; no agregar rutas de edición o borrado.
+- [X] T010 [US1] Crear `AjusteController` en `src/main/java/com/group6/BancoAlimentos/ajuste/controller/AjusteController.java` con `POST /api/ajustes`, `@Valid`, delegación al service y respuesta 201.
 
 ---
 
@@ -68,22 +68,22 @@ description: "Tareas de implementación para ajustes manuales de stock"
 
 **Meta**: Permitir al depósito consultar el historial paginado con filtros AND y denegar las operaciones a otros roles.
 
-**Prueba independiente**: Las consultas devuelven únicamente resultados que cumplen todos los filtros, ordenan por fechaHora e ID descendentes, respetan paginación y devuelven página vacía sin coincidencias. GET y POST responden 401 sin autenticación y 403 a roles no autorizados.
+**Prueba independiente**: Las consultas devuelven únicamente resultados que cumplen todos los filtros, ordenan por fechaHora e ID descendentes, respetan paginación y devuelven página vacía sin coincidencias. Los cuatro endpoints responden 401 sin autenticación y 403 a roles no autorizados.
 
 ### Tests de consultas, filtros y permisos (antes de implementar)
 
 - [X] T014 [P] [US2] Agregar `AjusteConsultaRepositoryTest` en `src/test/java/com/group6/BancoAlimentos/ajuste/repository/AjusteConsultaRepositoryTest.java` para verificar filtros combinables por producto, vencimiento exacto, fecha UTC inclusiva, usuario y tipo; vencimiento omitido sin filtro, rango invertido inválido, orden estable fechaHora/ID descendente y paginación.
 - [X] T015 [P] [US2] Agregar pruebas de integración de listado en `src/test/java/com/group6/BancoAlimentos/ajuste/controller/AjusteControllerIntegracionTest.java` para filtros individuales/combinados de `GET /api/ajustes`, límites de página (máximo 100), orden, página vacía y rango de fechas invertido.
-- [X] T016 [P] [US2] Agregar `AjustePermisosIntegracionTest` en `src/test/java/com/group6/BancoAlimentos/ajuste/controller/AjustePermisosIntegracionTest.java` para comprobar que GET y POST requieren autenticación (401), solo `user_deposito` tiene acceso (otros roles reciben 403) y una denegación no altera stock ni historial.
-- [X] T017 [P] [US2] Agregar `ContratoAjustesOpenApiTest` en `src/test/java/com/group6/BancoAlimentos/Seguridad/ContratoAjustesOpenApiTest.java` para validar que el OpenAPI publicado documenta POST y GET, filtros, paginación y respuestas del contrato, y no declara PUT/DELETE.
+- [X] T016 [P] [US2] Agregar `AjustePermisosIntegracionTest` en `src/test/java/com/group6/BancoAlimentos/ajuste/controller/AjustePermisosIntegracionTest.java` para comprobar que GET, POST, PUT y DELETE requieren autenticación (401), solo `user_deposito` tiene acceso (otros roles reciben 403) y una denegación no altera stock ni historial.
+- [X] T017 [P] [US2] Agregar `ContratoAjustesOpenApiTest` en `src/test/java/com/group6/BancoAlimentos/Seguridad/ContratoAjustesOpenApiTest.java` para validar que OpenAPI documenta POST, GET, PUT, DELETE, filtros, paginación y respuestas.
 
 ### Implementación de consultas, filtros y permisos
 
 - [X] T018 [US2] Implementar la consulta paginada y sus predicados en `src/main/java/com/group6/BancoAlimentos/ajuste/repository/AjusteRepository.java`; combinar solo los filtros informados con AND, tratar fechaDesde/fechaHasta como inclusivas sobre fechaHora UTC, ordenar fechaHora e ID descendentes y mantener solo métodos de lectura/inserción.
 - [X] T019 [US2] Implementar el caso de uso de listado en `src/main/java/com/group6/BancoAlimentos/ajuste/service/AjusteService.java`, reutilizando `Paginacion` y `PaginaRespuesta`, convirtiendo resultados a DTOs y rechazando rangos invertidos como solicitud inválida.
 - [X] T020 [US2] Agregar `GET /api/ajustes` en `src/main/java/com/group6/BancoAlimentos/ajuste/controller/AjusteController.java` con filtros opcionales `productoId`, `fechaVencimiento`, `fechaDesde`, `fechaHasta`, `usuarioId`, `tipo` y parámetros `pagina`/`tamano` existentes.
-- [X] T021 [US2] Declarar explícitamente en `src/main/java/com/group6/BancoAlimentos/Security/ConfiguracionSeguridad.java` el acceso exclusivo de `user_deposito` a GET y POST `/api/ajustes`; no modificar políticas de otros endpoints.
-- [X] T022 [US2] Incorporar POST, GET, esquemas, filtros, paginación, respuestas HTTP y seguridad del contrato en `src/main/resources/openapi.yaml`, siguiendo `specs/004-ajustes-manuales-stock/contracts/ajustes-stock.openapi.yaml` y sin rutas PUT/DELETE.
+- [X] T021 [US2] Declarar explícitamente en `src/main/java/com/group6/BancoAlimentos/Security/ConfiguracionSeguridad.java` el acceso exclusivo de `user_deposito` a GET, POST, PUT y DELETE `/api/ajustes`; no modificar políticas de otros endpoints.
+- [X] T022 [US2] Incorporar POST, GET, PUT, DELETE, esquemas, filtros, paginación, respuestas HTTP y seguridad del contrato en `src/main/resources/openapi.yaml`, siguiendo `specs/004-ajustes-manuales-stock/contracts/ajustes-stock.openapi.yaml`.
 
 ---
 
@@ -93,6 +93,8 @@ description: "Tareas de implementación para ajustes manuales de stock"
 
 - [X] T023 Actualizar los nombres de pruebas y escenarios de aceptación en `specs/004-ajustes-manuales-stock/quickstart.md` para reflejar las clases implementadas y cubrir BAJA, CORRECCION, concurrencia, rollback, consultas, permisos y remitos BORRADOR sin cambiar servicios existentes de stock/remitos.
 - [X] T024 Ejecutar `.\mvnw.cmd -Dtest=AjusteServiceTest,AjusteServiceConcurrenciaTest,AjusteControllerIntegracionTest,AjusteMigracionTest,AjusteRepositoryTest,AjusteConsultaRepositoryTest,AjustePermisosIntegracionTest,ContratoAjustesOpenApiTest test` desde la raíz y resolver fallos vinculados a esta feature; los escenarios de validación están detallados en `specs/004-ajustes-manuales-stock/quickstart.md`.
+- [X] T025 Agregar pruebas de servicio e integración para editar/eliminar ajustes, restaurar el saldo original y rechazar cambios cuando existen revisiones posteriores del lote; conservar auditoría Envers.
+- [X] T026 Retirar mediante V10 el constraint de tipo mal escrito de V9, mantener V9 inalterada, validar los tipos permitidos desde la API y verificar que Flyway inserta ambos tipos en H2.
 
 ---
 
@@ -123,7 +125,7 @@ description: "Tareas de implementación para ajustes manuales de stock"
 
 ### MVP
 
-1. Completar la migración V9 y la entidad append-only con Envers.
+1. Completar las migraciones V9/V10 y la entidad auditada con Envers.
 2. Completar y validar el flujo BAJA (US1, primera parte).
 3. **Alcance MVP de negocio**: US1 completa al agregar correcciones; verificar ambas operaciones antes de habilitar consultas.
 

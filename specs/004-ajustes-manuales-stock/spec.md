@@ -53,7 +53,7 @@ El personal del depósito consulta los ajustes registrados para reconstruir qué
 - Si dos usuarios ajustan el mismo lote a la vez, cada operación se resuelve respecto del stock vigente al registrarse; ninguna puede producir stock negativo y cada historial refleja las cantidades efectivamente anterior y nueva.
 - Un ajuste puede dejar sin stock suficiente a un remito en borrador; este no reserva stock y debe volver a validar disponibilidad al confirmarse.
 - Un ajuste no modifica donaciones, remitos ni facturas ya confirmados.
-- Los ajustes registrados no se editan ni eliminan; un error se corrige con un nuevo ajuste.
+- Los ajustes se pueden editar o eliminar solo si no existe ninguna revisión de stock posterior asociada al lote. Editar registra una revisión de auditoría; eliminar revierte el saldo y conserva la revisión de auditoría.
 
 ## Requirements *(mandatory)*
 
@@ -69,7 +69,7 @@ El personal del depósito consulta los ajustes registrados para reconstruir qué
 - **FR-008**: El sistema MUST actualizar el stock y registrar el ajuste como una única operación: si el ajuste se rechaza, no debe cambiar ni el stock ni el historial.
 - **FR-009**: Si hay ajustes simultáneos sobre un mismo lote, cada uno MUST comprobar el stock vigente al aplicarse y MUST conservar las cantidades anterior y nueva efectivamente resultantes, sin permitir stock negativo.
 - **FR-010**: Cada registro MUST conservar la fecha y hora, el usuario, el producto, el vencimiento del lote, el tipo de ajuste, la cantidad anterior, la cantidad nueva y el motivo.
-- **FR-011**: Una vez registrado, un ajuste MUST ser inmutable y MUST NOT poder editarse ni eliminarse. Un error MUST corregirse registrando otro ajuste.
+- **FR-011**: El rol de depósito MUST poder editar o eliminar un ajuste solo cuando el historial de Envers no registre cambios posteriores en el lote. La edición MUST recalcular el saldo desde la cantidad anterior original; la eliminación MUST restaurar ese saldo. Ambos cambios MUST conservar auditoría.
 - **FR-012**: El rol de depósito MUST poder consultar el historial de ajustes y filtrarlo por producto, vencimiento, fecha del ajuste, usuario y tipo de ajuste. Al combinar filtros, el resultado MUST cumplir todos los criterios.
 - **FR-013**: El sistema MUST denegar el registro y la consulta de ajustes a usuarios sin rol de depósito, sin alterar stock ni historial.
 - **FR-014**: Los ajustes MUST NOT modificar donaciones, remitos ni facturas ya confirmados.
@@ -78,7 +78,7 @@ El personal del depósito consulta los ajustes registrados para reconstruir qué
 ### Key Entities *(include if feature involves data)*
 
 - **Lote de stock**: Cantidad disponible de un producto para un vencimiento determinado. El ajuste opera sobre esta combinación y no convierte unidades.
-- **Ajuste de stock**: Registro inmutable de una corrección (fijar la cantidad real) o una baja (descontar una cantidad), con autor, fecha y hora, lote, cantidades anterior y nueva, y motivo.
+- **Ajuste de stock**: Registro auditable de una corrección (fijar la cantidad real) o una baja (descontar una cantidad), con autor, fecha y hora, lote, cantidades anterior y nueva, y motivo.
 - **Usuario de depósito**: Usuario con el rol autorizado para registrar y consultar ajustes.
 - **Remito en borrador**: Remito no confirmado que no reserva stock y cuya disponibilidad debe validarse al confirmarse.
 

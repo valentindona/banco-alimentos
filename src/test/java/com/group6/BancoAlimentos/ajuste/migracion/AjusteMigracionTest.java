@@ -33,6 +33,31 @@ class AjusteMigracionTest {
 
             assertTrue(existeTabla(jdbc, "AJUSTES_STOCK"));
             assertTrue(existeTabla(jdbc, "AJUSTES_STOCK_AUD"));
+            assertEquals(0, jdbc.queryForObject("""
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+                    WHERE CONSTRAINT_NAME = 'CHK_AJUSTES_STOCK_TIPO'
+                    """, Integer.class));
+            jdbc.update("INSERT INTO productos (id, nombre, unidad_medida) VALUES (900001, 'Migración', 'kg')");
+            jdbc.update("""
+                    INSERT INTO usuarios (id, nombre_usuario, clave_hash, rol)
+                    VALUES (900001, 'migracion', 'hash', 'USER_DEPOSITO')
+                    """);
+            jdbc.update("""
+                    INSERT INTO stock (id, producto_id, cantidad_disponible, estado)
+                    VALUES (900001, 900001, 1.000, 'DISPONIBLE')
+                    """);
+            jdbc.update("""
+                    INSERT INTO ajustes_stock (
+                        id, stock_id, producto_id, usuario_id, fecha_hora, tipo,
+                        cantidad_anterior, cantidad_nueva, motivo
+                    ) VALUES (900001, 900001, 900001, 900001, CURRENT_TIMESTAMP, 'BAJA', 2, 1, 'Prueba')
+                    """);
+            jdbc.update("""
+                    INSERT INTO ajustes_stock (
+                        id, stock_id, producto_id, usuario_id, fecha_hora, tipo,
+                        cantidad_anterior, cantidad_nueva, motivo
+                    ) VALUES (900002, 900001, 900001, 900001, CURRENT_TIMESTAMP, 'CORRECCION', 1, 0, 'Corrección')
+                    """);
             assertEquals(12, precision(jdbc, "AJUSTES_STOCK", "CANTIDAD_NUEVA"));
             assertEquals(3, escala(jdbc, "AJUSTES_STOCK", "CANTIDAD_NUEVA"));
             assertEquals("NO", nullable(jdbc, "AJUSTES_STOCK", "MOTIVO"));

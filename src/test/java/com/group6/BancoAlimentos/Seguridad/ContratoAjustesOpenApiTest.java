@@ -27,13 +27,17 @@ class ContratoAjustesOpenApiTest {
         assertTrue(ruta.contains("tipo"));
         assertTrue(ruta.contains("#/components/parameters/Pagina"));
         assertTrue(ruta.contains("#/components/parameters/Tamano"));
-        assertFalse(ruta.contains("put:"));
-        assertFalse(ruta.contains("delete:"));
+        String operacionesEdicion = bloqueRuta(integrado, "/ajustes/{ajusteId}");
+        assertNotNull(operacionesEdicion);
+        assertTrue(operacionesEdicion.contains("put:"));
+        assertTrue(operacionesEdicion.contains("delete:"));
         for (String nombre : new String[] {"AjusteSolicitud", "AjusteRespuesta", "PaginaAjusteRespuesta"}) {
             assertTrue(integrado.contains(nombre), "No se documentó " + nombre);
         }
         assertTrue(contrato.contains("operationId: registrarAjusteStock"));
         assertTrue(contrato.contains("operationId: listarAjustesStock"));
+        assertTrue(contrato.contains("operationId: actualizarAjusteStock"));
+        assertTrue(contrato.contains("operationId: eliminarAjusteStock"));
     }
 
     private String bloqueRuta(String yaml, String ruta) {

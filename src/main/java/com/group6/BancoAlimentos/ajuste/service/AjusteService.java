@@ -1,6 +1,7 @@
 package com.group6.BancoAlimentos.ajuste.service;
 
 import com.group6.BancoAlimentos.Common.excepcion.ReglaNegocioException;
+import com.group6.BancoAlimentos.Common.excepcion.RecursoNoEncontradoException;
 import com.group6.BancoAlimentos.Common.excepcion.SolicitudInvalidaException;
 import com.group6.BancoAlimentos.Common.respuesta.Paginacion;
 import com.group6.BancoAlimentos.Security.UsuarioAutenticado;
@@ -47,7 +48,7 @@ public class AjusteService {
 
     @Transactional
     public AjusteRespuesta registrar(AjusteSolicitud solicitud, UsuarioAutenticado usuario) {
-        validarSolicitud(solicitud, usuario);
+        validarSolicitud(solicitud, usuario, true);
         String motivo = solicitud.motivo().strip();
         Stock stock = stockRepository.buscarTodosPorIdBloqueadosOrdenados(List.of(solicitud.stockId())).stream()
                 .findFirst()
@@ -69,6 +70,52 @@ public class AjusteService {
         stock.setCantidadDisponible(nueva);
         stockRepository.saveAndFlush(stock);
         return ajusteMapper.aRespuesta(ajusteRepository.save(ajuste));
+    }
+
+    @Transactional
+    public AjusteRespuesta actualizar(Long ajusteId, AjusteSolicitud solicitud) {
+        validarSolicitud(solicitud, null, false);
+        Ajuste ajuste = ajusteRepository.findById(ajusteId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el ajuste " + ajusteId));
+        if (!ajuste.getStockId().equals(solicitud.stockId())) {
+            throw new ReglaNegocioException("No se puede cambiar el lote asociado a un ajuste existente.");
+        }
+        Stock stock = stockRepository.buscarTodosPorIdBloqueadosOrdenados(List.of(ajuste.getStockId())).stream()
+                .findFirst()
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "No se encontró el lote de stock " + ajuste.getStockId()));
+        if (huboMovimientosPosteriores(ajuste, stock)) {
+            throw new ReglaNegocioException(
+                    "No se puede editar este ajuste porque el stock tuvo movimientos posteriores.");
+        }
+        BigDecimal anterior = ajuste.getCantidadAnterior();
+        BigDecimal nueva = calcularNuevaCantidad(solicitud.tipo(), solicitud.cantidad(), anterior);
+        stock.setCantidadDisponible(nueva);
+        stockRepository.saveAndFlush(stock);
+        ajuste.actualizar(solicitud.tipo(), anterior, nueva, solicitud.motivo().strip());
+        return ajusteMapper.aRespuesta(ajusteRepository.save(ajuste));
+    }
+
+    @Transactional
+    public void eliminar(Long ajusteId) {
+        Ajuste ajuste = ajusteRepository.findById(ajusteId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("No se encontró el ajuste " + ajusteId));
+        Stock stock = stockRepository.buscarTodosPorIdBloqueadosOrdenados(List.of(ajuste.getStockId())).stream()
+                .findFirst()
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "No se encontró el lote de stock " + ajuste.getStockId()));
+        if (huboMovimientosPosteriores(ajuste, stock)) {
+            throw new ReglaNegocioException(
+                    "No se puede eliminar este ajuste porque el stock tuvo movimientos posteriores.");
+        }
+        stock.setCantidadDisponible(ajuste.getCantidadAnterior());
+        stockRepository.saveAndFlush(stock);
+        ajusteRepository.delete(ajuste);
+    }
+
+    private boolean huboMovimientosPosteriores(Ajuste ajuste, Stock stock) {
+        return stock.getCantidadDisponible().compareTo(ajuste.getCantidadNueva()) != 0
+                || ajusteRepository.contarMovimientosStockPosteriores(ajuste.getId(), ajuste.getStockId()) > 0;
     }
 
     @Transactional(readOnly = true)
@@ -98,8 +145,8 @@ public class AjusteService {
                 .map(ajusteMapper::aRespuesta);
     }
 
-    private void validarSolicitud(AjusteSolicitud solicitud, UsuarioAutenticado usuario) {
-        if (solicitud == null || usuario == null) {
+    private void validarSolicitud(AjusteSolicitud solicitud, UsuarioAutenticado usuario, boolean requiereUsuario) {
+        if (solicitud == null || (requiereUsuario && usuario == null)) {
             throw new ReglaNegocioException("La solicitud y la identidad autenticada son obligatorias.");
         }
         if (solicitud.stockId() == null || solicitud.stockId() <= 0

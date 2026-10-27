@@ -2,7 +2,9 @@ package com.group6.BancoAlimentos.ajuste.controller;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -171,6 +173,40 @@ class AjusteControllerIntegracionTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.contenido.length()").value(0))
                 .andExpect(jsonPath("$.tamano").value(100));
+    }
+
+    @Test
+    void editaYAEliminaAjusteRevirtiendoElStockSoloSinCambiosPosteriores() throws Exception {
+        var autenticar = autenticacion("user_deposito", usuario.getId());
+        Stock stock = crearStock("10.000", LocalDate.now().plusDays(30), EstadoStock.DISPONIBLE);
+
+        var creado = mockMvc.perform(post("/api/ajustes")
+                        .with(autenticar)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"stockId":%d,"tipo":"BAJA","cantidad":2.000,"motivo":"Carga inicial"}
+                                """.formatted(stock.getId())))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long ajusteId = Long.parseLong(
+                creado.getResponse().getContentAsString().replaceFirst("(?s).*\"id\":(\\d+).*", "$1"));
+        assertThatStock(stock.getId(), "8.000");
+
+        mockMvc.perform(put("/api/ajustes/{id}", ajusteId)
+                        .with(autenticar)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"stockId":%d,"tipo":"BAJA","cantidad":3.000,"motivo":"Cantidad corregida"}
+                                """.formatted(stock.getId())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cantidadAnterior").value(10.0))
+                .andExpect(jsonPath("$.cantidadNueva").value(7.0))
+                .andExpect(jsonPath("$.motivo").value("Cantidad corregida"));
+        assertThatStock(stock.getId(), "7.000");
+
+        mockMvc.perform(delete("/api/ajustes/{id}", ajusteId).with(autenticar))
+                .andExpect(status().isNoContent());
+        assertThatStock(stock.getId(), "10.000");
     }
 
     @Test

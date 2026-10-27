@@ -39,8 +39,16 @@ interface FormField {
   label: string;
   type: 'text' | 'email' | 'password' | 'number' | 'date' | 'select' | 'textarea';
   required?: boolean;
-  options?: string[];
+  options?: FormOption[];
+  disabled?: boolean;
+  minLength?: number;
+  maxLength?: number;
   hint?: string;
+}
+
+interface FormOption {
+  value: string;
+  label: string;
 }
 
 interface DonationItem {
@@ -157,6 +165,9 @@ export class App {
   readonly formMode = signal<FormMode | null>(null);
   readonly formValues = signal<Record<string, string>>({});
   readonly editingRow = signal<DataRow | null>(null);
+  readonly editingDetail = signal<DataRow | null>(null);
+  readonly lookupOptions = signal<Record<string, FormOption[]>>({});
+  readonly lookupRows = signal<Record<string, DataRow[]>>({});
   readonly pageIndex = signal(0);
   readonly totalPages = signal(0);
   readonly donationItems = signal<DonationItem[]>([]);
@@ -215,7 +226,7 @@ export class App {
             label: 'Estado de pago',
             type: 'select',
             required: true,
-            options: ['AL_DIA', 'EN_DEUDA', 'PARTICULAR'],
+            options: this.staticOptions(['AL_DIA', 'EN_DEUDA', 'PARTICULAR']),
           },
         ];
       }
@@ -233,6 +244,8 @@ export class App {
           label: 'Contraseña',
           type: 'password',
           required: true,
+          minLength: 12,
+          maxLength: 128,
           hint: 'Debe tener entre 12 y 128 caracteres.',
         },
         {
@@ -240,45 +253,103 @@ export class App {
           label: 'Rol',
           type: 'select',
           required: true,
-          options: ['USER_DEPOSITO', 'USER_INSTITUCIONAL', 'USER_TESORERIA'],
+          options: this.staticOptions(['USER_DEPOSITO', 'USER_INSTITUCIONAL', 'USER_TESORERIA']),
         },
         {
           name: 'institucionId',
-          label: 'ID de institución',
-          type: 'number',
-          hint: 'Obligatorio solo para el rol institucional.',
+          label: 'Institución',
+          type: 'select',
+          required: true,
+          options: this.lookupOptions()['institucionId'] ?? [],
+        },
+      ];
+    }
+    if (module === 'facturas' && mode === 'create') {
+      return [
+        {
+          name: 'donacionId',
+          label: 'Donación',
+          type: 'select',
+          required: true,
+          options: this.lookupOptions()['donacionId'] ?? [],
+          hint: 'La generación es segura: si ya existe un comprobante, no se duplica.',
         },
       ];
     }
     if (module === 'donaciones' && mode === 'create') {
       return [
-        { name: 'donanteId', label: 'ID del donante', type: 'number', required: true },
+        {
+          name: 'donanteId',
+          label: 'Donante',
+          type: 'select',
+          required: true,
+          options: this.lookupOptions()['donanteId'] ?? [],
+        },
         { name: 'fecha', label: 'Fecha de recepción', type: 'date', required: true },
       ];
     }
     if (module === 'remitos') {
-      if (mode === 'create') {
+      if (mode === 'create' || mode === 'edit') {
         return [
-          { name: 'institucionId', label: 'ID de institución', type: 'number', required: true },
+          {
+            name: 'institucionId',
+            label: 'Institución',
+            type: 'select',
+            required: true,
+            options: this.lookupOptions()['institucionId'] ?? [],
+          },
           { name: 'fechaEntrega', label: 'Fecha de entrega', type: 'date', required: true },
         ];
       }
       if (mode === 'remito-detail') {
         return [
-          { name: 'stockId', label: 'ID del lote de stock', type: 'number', required: true },
+          {
+            name: 'stockId',
+            label: 'Lote de stock',
+            type: 'select',
+            required: true,
+            options: this.stockOptionsForRemitoDetail(),
+          },
           { name: 'cantidad', label: 'Cantidad', type: 'number', required: true },
         ];
       }
     }
     if (module === 'ajustes' && mode === 'create') {
       return [
-        { name: 'stockId', label: 'ID del lote de stock', type: 'number', required: true },
+        {
+          name: 'stockId',
+          label: 'Lote de stock',
+          type: 'select',
+          required: true,
+          options: this.lookupOptions()['stockId'] ?? [],
+        },
         {
           name: 'tipo',
           label: 'Tipo de ajuste',
           type: 'select',
           required: true,
-          options: ['CORRECCION', 'BAJA'],
+          options: this.staticOptions(['CORRECCION', 'BAJA']),
+        },
+        { name: 'cantidad', label: 'Cantidad', type: 'number', required: true },
+        { name: 'motivo', label: 'Motivo', type: 'text', required: true },
+      ];
+    }
+    if (module === 'ajustes' && mode === 'edit') {
+      return [
+        {
+          name: 'stockId',
+          label: 'Lote de stock',
+          type: 'select',
+          required: true,
+          options: this.stockOptionsForAdjustment(),
+          disabled: true,
+        },
+        {
+          name: 'tipo',
+          label: 'Tipo de ajuste',
+          type: 'select',
+          required: true,
+          options: this.staticOptions(['CORRECCION', 'BAJA']),
         },
         { name: 'cantidad', label: 'Cantidad', type: 'number', required: true },
         { name: 'motivo', label: 'Motivo', type: 'text', required: true },
@@ -292,7 +363,8 @@ export class App {
     const mode = this.formMode();
     if (mode === 'edit') return `Editar ${module.toLocaleLowerCase('es-AR')}`;
     if (mode === 'payment') return 'Actualizar estado de pago';
-    if (mode === 'remito-detail') return 'Agregar producto al remito';
+    if (mode === 'remito-detail') return this.editingDetail() ? 'Editar artículo del remito' : 'Agregar producto al remito';
+    if (module === 'Facturas') return 'Generar comprobante';
     return `Agregar ${module.toLocaleLowerCase('es-AR')}`;
   }
 
@@ -304,7 +376,8 @@ export class App {
         key === 'donantes' ||
         key === 'donaciones' ||
         key === 'remitos' ||
-        key === 'ajustes') &&
+        key === 'ajustes' ||
+        key === 'facturas') &&
         role === D) ||
       (key === 'instituciones' && role === I) ||
       (key === 'usuarios' && role === D)
@@ -312,7 +385,29 @@ export class App {
   }
 
   showFormField(field: FormField): boolean {
-    return field.name !== 'institucionId' || this.formValues()['rol'] === I;
+    return (
+      field.name !== 'institucionId' ||
+      this.activeModule()?.key !== 'usuarios' ||
+      this.formValues()['rol'] === I
+    );
+  }
+
+  minimumValue(field: FormField): string | null {
+    if (field.type !== 'number') return null;
+    if (
+      field.name === 'cantidad' &&
+      this.activeModule()?.key === 'ajustes' &&
+      this.formValues()['tipo'] === 'CORRECCION'
+    ) {
+      return '0';
+    }
+    if (field.name.endsWith('Id')) return '1';
+    return '0.001';
+  }
+
+  stepValue(field: FormField): string | null {
+    if (field.type !== 'number') return null;
+    return field.name.endsWith('Id') ? '1' : '0.001';
   }
 
   async login(): Promise<void> {
@@ -369,6 +464,7 @@ export class App {
         { productoId: '', cantidad: '', fechaVencimiento: this.localDate() },
       ]);
     }
+    void this.loadFormChoices();
   }
 
   openEditForm(row: DataRow): void {
@@ -376,11 +472,14 @@ export class App {
     const role = this.user()?.rol;
     if (!this.rowId(row)) return;
     if (
-      !((module === 'productos' || module === 'donantes') && role === D) &&
+      !((module === 'productos' || module === 'donantes' || module === 'ajustes') && role === D) &&
+      !(module === 'remitos' && role === D && this.rowText(row, 'estado') === 'BORRADOR') &&
       !(module === 'instituciones' && role === I)
     )
       return;
     this.beginForm('edit', row, this.valuesFromRow(row));
+    if (module === 'ajustes') void this.loadFormChoices();
+    if (module === 'remitos') void this.loadFormChoices();
   }
 
   openPaymentForm(row: DataRow): void {
@@ -389,16 +488,23 @@ export class App {
     this.beginForm('payment', row, { estadoPago: this.rowText(row, 'estadoPago') });
   }
 
-  openRemitoDetailForm(row: DataRow): void {
+  openRemitoDetailForm(row: DataRow, detail: DataRow | null = null): void {
     if (this.activeModule()?.key !== 'remitos' || this.user()?.rol !== D || !this.rowId(row))
       return;
-    this.beginForm('remito-detail', row, {});
+    this.editingDetail.set(detail);
+    this.beginForm(
+      'remito-detail',
+      row,
+      detail ? { stockId: this.rowText(detail, 'stockId'), cantidad: this.rowText(detail, 'cantidad') } : {},
+    );
+    void this.loadFormChoices();
   }
 
   closeForm(): void {
     this.formMode.set(null);
     this.formValues.set({});
     this.editingRow.set(null);
+    this.editingDetail.set(null);
     this.donationItems.set([]);
   }
 
@@ -442,9 +548,18 @@ export class App {
           : mode === 'payment' && rowId
             ? `${module.endpoint}/${rowId}/estado-pago`
             : mode === 'remito-detail' && rowId
-              ? `${module.endpoint}/${rowId}/detalles`
+              ? `${module.endpoint}/${rowId}/detalles${
+                  this.editingDetail() ? `/${this.rowId(this.editingDetail())}` : ''
+                }`
+              : module.key === 'facturas' && mode === 'create'
+                ? `${module.endpoint}/generacion`
               : module.endpoint;
-      const method = mode === 'edit' ? 'put' : mode === 'payment' ? 'patch' : 'post';
+      const method =
+        mode === 'edit' || (mode === 'remito-detail' && this.editingDetail())
+          ? 'put'
+          : mode === 'payment'
+            ? 'patch'
+            : 'post';
       const body = this.formPayload(module.key, mode, values);
       const request =
         method === 'put'
@@ -479,15 +594,65 @@ export class App {
     const id = this.rowId(row);
     const key = module?.key;
     const allowed =
-      (this.user()?.rol === D && (key === 'productos' || key === 'donantes')) ||
+      (this.user()?.rol === D &&
+        (key === 'productos' ||
+          key === 'donantes' ||
+          key === 'ajustes' ||
+          (key === 'remitos' && this.rowText(row, 'estado') === 'BORRADOR'))) ||
       (this.user()?.rol === I && key === 'instituciones');
     if (!module || !id || !allowed) return;
-    if (!window.confirm(`¿Dar de baja este registro?`)) return;
+    const confirmation =
+      key === 'ajustes'
+        ? '¿Eliminar este ajuste y revertir su impacto en stock? Solo es posible si no hubo movimientos posteriores.'
+        : key === 'remitos'
+          ? '¿Eliminar este remito en borrador y sus artículos?'
+          : '¿Dar de baja este registro?';
+    if (!window.confirm(confirmation)) return;
     await this.performAction(
       `${module.endpoint}/${id}`,
       'delete',
       null,
       'No se pudo dar de baja el registro.',
+    );
+  }
+
+  async deactivateRemitoDetail(remito: DataRow, detail: DataRow): Promise<void> {
+    const remitoId = this.rowId(remito);
+    const detailId = this.rowId(detail);
+    if (!this.canManageRemito(remito) || !remitoId || !detailId) return;
+    if (!window.confirm('¿Quitar este artículo del remito en borrador?')) return;
+    await this.performAction(
+      `/api/remitos/${remitoId}/detalles/${detailId}`,
+      'delete',
+      null,
+      'No se pudo quitar el artículo del remito.',
+    );
+  }
+
+  async generateInvoice(row: DataRow): Promise<void> {
+    const donationId = this.rowId(row);
+    if (
+      this.activeModule()?.key !== 'donaciones' ||
+      this.user()?.rol !== D ||
+      !donationId ||
+      row['comprobante']
+    ) {
+      return;
+    }
+    await this.performAction(
+      '/api/facturas/generacion',
+      'post',
+      { donacionId: Number(donationId) },
+      'No se pudo generar el comprobante.',
+    );
+  }
+
+  canGenerateInvoice(row: DataRow): boolean {
+    return (
+      this.activeModule()?.key === 'donaciones' &&
+      this.user()?.rol === D &&
+      Boolean(this.rowId(row)) &&
+      !row['comprobante']
     );
   }
 
@@ -541,6 +706,8 @@ export class App {
       return false;
     return (
       (this.user()?.rol === D && (key === 'productos' || key === 'donantes')) ||
+      (this.user()?.rol === D && key === 'ajustes') ||
+      (this.user()?.rol === D && key === 'remitos' && this.rowText(row, 'estado') === 'BORRADOR') ||
       (this.user()?.rol === I && key === 'instituciones')
     );
   }
@@ -555,6 +722,8 @@ export class App {
       return false;
     return (
       (this.user()?.rol === D && (key === 'productos' || key === 'donantes')) ||
+      (this.user()?.rol === D && key === 'ajustes') ||
+      (this.user()?.rol === D && key === 'remitos' && this.rowText(row, 'estado') === 'BORRADOR') ||
       (this.user()?.rol === I && key === 'instituciones')
     );
   }
@@ -574,6 +743,11 @@ export class App {
       Boolean(this.rowId(row)) &&
       this.rowText(row, 'estado').toUpperCase() === 'BORRADOR'
     );
+  }
+
+  remitoDetails(row: DataRow): DataRow[] {
+    const details = row['detalles'];
+    return Array.isArray(details) ? details.filter(this.isDataRow) : [];
   }
 
   roleLabel(role: Role | undefined): string {
@@ -680,6 +854,7 @@ export class App {
         })),
       };
     }
+    if (key === 'facturas') return { donacionId: numberValue('donacionId') };
     if (key === 'remitos' && mode === 'remito-detail') {
       return { stockId: numberValue('stockId'), cantidad: numberValue('cantidad') };
     }
@@ -705,6 +880,7 @@ export class App {
 
   private beginForm(mode: FormMode, row: DataRow | null, values: Record<string, string>): void {
     this.error.set('');
+    if (mode !== 'remito-detail') this.editingDetail.set(null);
     this.editingRow.set(row);
     this.formValues.set(values);
     this.formMode.set(mode);
@@ -726,13 +902,135 @@ export class App {
   }
 
   private valuesFromRow(row: DataRow): Record<string, string> {
-    const fields =
-      this.activeModule()?.key === 'productos'
-        ? ['nombre', 'descripcion', 'tipoAlimento', 'unidadMedida']
-        : this.activeModule()?.key === 'donantes'
-          ? ['nombre', 'correo', 'telefono']
-          : ['nombre', 'domicilio', 'tipo'];
+    const key = this.activeModule()?.key;
+    if (key === 'ajustes') {
+      const tipo = this.rowText(row, 'tipo');
+      const anterior = Number(this.rowText(row, 'cantidadAnterior'));
+      const nueva = Number(this.rowText(row, 'cantidadNueva'));
+      return {
+        stockId: this.rowText(row, 'stockId'),
+        tipo,
+        cantidad: String(tipo === 'BAJA' ? anterior - nueva : nueva),
+        motivo: this.rowText(row, 'motivo'),
+      };
+    }
+    if (key === 'remitos') {
+      return {
+        institucionId: this.rowText(row, 'institucionId'),
+        fechaEntrega: this.rowText(row, 'fechaEntrega'),
+      };
+    }
+    const fields = key === 'productos'
+      ? ['nombre', 'descripcion', 'tipoAlimento', 'unidadMedida']
+      : key === 'donantes'
+        ? ['nombre', 'correo', 'telefono']
+        : ['nombre', 'domicilio', 'tipo'];
     return Object.fromEntries(fields.map((field) => [field, this.rowText(row, field)]));
+  }
+
+  private staticOptions(values: string[]): FormOption[] {
+    return values.map((value) => ({ value, label: value }));
+  }
+
+  private stockOptionsForRemitoDetail(): FormOption[] {
+    return (this.lookupOptions()['stockId'] ?? []).filter((option) => {
+      const stock = this.lookupRows()['stockId']?.find((row) => String(row['id']) === option.value);
+      const expiration = stock?.['fechaVencimiento'];
+      return stock?.['estado'] === 'DISPONIBLE' &&
+        typeof expiration === 'string' &&
+        expiration > this.localDate();
+    });
+  }
+
+  private stockOptionsForAdjustment(): FormOption[] {
+    const options = this.lookupOptions()['stockId'] ?? [];
+    const row = this.editingRow();
+    const stockId = row ? this.rowText(row, 'stockId') : '';
+    return stockId && !options.some((option) => option.value === stockId)
+      ? [...options, { value: stockId, label: `Lote #${stockId}` }]
+      : options;
+  }
+
+  private async loadFormChoices(): Promise<void> {
+    const fields = this.formFields;
+    const requiredLookups = new Set(
+      fields
+        .filter((field) => field.type === 'select')
+        .map((field) => field.name)
+        .filter((name) =>
+          ['donanteId', 'productoId', 'institucionId', 'stockId', 'donacionId'].includes(name),
+        ),
+    );
+    if (this.activeModule()?.key === 'donaciones' && this.formMode() === 'create') {
+      requiredLookups.add('productoId');
+    }
+    if (requiredLookups.size === 0) return;
+
+    this.busy.set(true);
+    try {
+      const next = { ...this.lookupOptions() };
+      const rowsByName = { ...this.lookupRows() };
+      for (const name of requiredLookups) {
+        const endpoint =
+          name === 'donanteId'
+            ? '/api/donantes'
+            : name === 'productoId'
+              ? '/api/productos'
+              : name === 'institucionId'
+                ? '/api/instituciones'
+                : name === 'stockId'
+                  ? '/api/stock'
+                  : '/api/donaciones';
+        const rows = await this.loadAllRows(endpoint);
+        rowsByName[name] = rows;
+        next[name] = rows
+          .filter((row) => name !== 'institucionId' || row['activa'] !== false)
+          .filter((row) => name !== 'donanteId' || row['activo'] !== false)
+          .filter((row) => name !== 'productoId' || row['activo'] !== false)
+          .map((row) => ({ value: String(row['id']), label: this.referenceLabel(row, name) }));
+      }
+      this.lookupOptions.set(next);
+      this.lookupRows.set(rowsByName);
+    } catch (error) {
+      this.showError(error, 'No se pudieron cargar las opciones de referencia.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  private async loadAllRows(endpoint: string): Promise<DataRow[]> {
+    const result: DataRow[] = [];
+    let page = 0;
+    let totalPages = 1;
+    do {
+      const response = await firstValueFrom(
+        this.http.get<unknown>(`${endpoint}?pagina=${page}&tamano=100`, this.requestOptions()),
+      );
+      if (Array.isArray(response)) {
+        result.push(...response.filter(this.isDataRow));
+        break;
+      }
+      if (!this.isDataRow(response)) break;
+      const content = response['contenido'] ?? response['content'];
+      if (Array.isArray(content)) result.push(...content.filter(this.isDataRow));
+      totalPages = this.readNumber(response, 'totalPaginas', 'totalPages', 1);
+      page += 1;
+    } while (page < totalPages);
+    return result;
+  }
+
+  private referenceLabel(row: DataRow, name: string): string {
+    const id = this.rowId(row);
+    if (name === 'stockId') {
+      const product = this.rowText(row, 'productoNombre') || `Producto #${this.rowText(row, 'productoId')}`;
+      const expiration = this.rowText(row, 'fechaVencimiento') || 'sin vencimiento';
+      const available = this.rowText(row, 'cantidadDisponible');
+      return `Lote #${id} — ${product} — vence ${expiration} — disponible: ${available}`;
+    }
+    if (name === 'donacionId') {
+      return `Donación #${id} — ${this.rowText(row, 'donanteNombre')} — ${this.rowText(row, 'fecha')}`;
+    }
+    return `${this.rowText(row, 'nombre') || this.rowText(row, 'productoNombre') || 'Registro'} (#${id})`;
   }
 
   private requestOptions(): { headers: Record<string, string> } {

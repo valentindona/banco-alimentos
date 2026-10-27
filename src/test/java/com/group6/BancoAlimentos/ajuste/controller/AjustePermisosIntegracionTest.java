@@ -3,7 +3,9 @@ package com.group6.BancoAlimentos.ajuste.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.group6.BancoAlimentos.Security.UsuarioAutenticado;
@@ -79,6 +81,13 @@ class AjustePermisosIntegracionTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(cuerpo))
                     .andExpect(status().isForbidden());
+            mockMvc.perform(put("/api/ajustes/44")
+                            .with(autenticar)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(cuerpo))
+                    .andExpect(status().isForbidden());
+            mockMvc.perform(delete("/api/ajustes/44").with(autenticar))
+                    .andExpect(status().isForbidden());
         }
 
         mockMvc.perform(get("/api/ajustes")).andExpect(status().isUnauthorized());
@@ -86,6 +95,11 @@ class AjustePermisosIntegracionTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(cuerpo))
                 .andExpect(status().isUnauthorized());
+        mockMvc.perform(put("/api/ajustes/44")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cuerpo))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/ajustes/44")).andExpect(status().isUnauthorized());
 
         assertEquals(stockAntes, stockRepository.findById(stock.getId()).orElseThrow().getCantidadDisponible());
         assertEquals(ajustesAntes, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM ajustes_stock", Integer.class));

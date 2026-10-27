@@ -35,7 +35,7 @@ paths:
                   motivo: Conteo físico del depósito
       responses:
         '201':
-          description: Ajuste registrado; devuelve el snapshot inmutable persistido.
+          description: Ajuste registrado; devuelve el snapshot auditable persistido.
           content:
             application/json:
               schema:
@@ -58,6 +58,60 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorRespuesta'
+  /api/ajustes/{ajusteId}:
+    put:
+      operationId: actualizarAjusteStock
+      summary: Editar un ajuste sin movimientos de stock posteriores
+      description: >
+        Recalcula el saldo desde la cantidad anterior del ajuste. Solo permite
+        modificar el ajuste mientras la cantidad vigente coincida con el resultado
+        registrado; cualquier movimiento posterior bloquea la edición.
+      x-roles: [user_deposito]
+      parameters:
+        - name: ajusteId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AjusteSolicitud'
+      responses:
+        '200':
+          description: Ajuste actualizado con revisión de auditoría.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AjusteRespuesta'
+        '404':
+          description: Ajuste inexistente.
+        '422':
+          description: Hay movimientos posteriores o la solicitud no es válida.
+    delete:
+      operationId: eliminarAjusteStock
+      summary: Eliminar un ajuste y revertir su impacto en stock
+      description: Solo es posible si no hubo movimientos posteriores en el lote.
+      x-roles: [user_deposito]
+      parameters:
+        - name: ajusteId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '204':
+          description: Ajuste eliminado y saldo revertido.
+        '404':
+          description: Ajuste inexistente.
+        '422':
+          description: Hay movimientos posteriores en el lote.
         '422':
           description: Lote inexistente o regla de negocio incumplida, por ejemplo saldo insuficiente.
           content:

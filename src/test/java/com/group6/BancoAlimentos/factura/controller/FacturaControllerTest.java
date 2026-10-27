@@ -44,6 +44,15 @@ class FacturaControllerTest {
         var deposito = authentication(autenticacion("user_deposito"));
         mockMvc.perform(post("/api/facturas").with(deposito)).andExpect(status().isMethodNotAllowed());
         mockMvc.perform(put("/api/facturas/1").with(deposito)).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/facturas/generacion")
+                        .with(authentication(autenticacion("user_tesoreria")))
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"donacionId\":1}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/facturas/generacion")
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("{\"donacionId\":1}"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

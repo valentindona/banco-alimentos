@@ -5,10 +5,16 @@ import java.time.LocalDate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface DonacionRepository extends JpaRepository<Donacion, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select donacion from Donacion donacion where donacion.id = :id")
+    java.util.Optional<Donacion> buscarPorIdBloqueado(@Param("id") Long id);
 
     @Query("""
             select donacion from Donacion donacion

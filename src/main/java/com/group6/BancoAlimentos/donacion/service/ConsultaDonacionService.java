@@ -74,7 +74,7 @@ public class ConsultaDonacionService {
         return donaciones.map(donacion -> respuesta(
                 donacion,
                 itemsPorDonacion.getOrDefault(donacion.getId(), List.of()),
-                exigirFactura(facturasPorDonacion.get(donacion.getId()), donacion.getId())));
+                facturasPorDonacion.get(donacion.getId())));
     }
 
     @Transactional(readOnly = true)
@@ -98,9 +98,7 @@ public class ConsultaDonacionService {
     private DonacionRespuesta aRespuesta(Donacion donacion) {
         List<ItemDonacion> items =
                 itemDonacionRepository.findByDonacionIdOrderByIdAsc(donacion.getId());
-        Factura factura = facturaRepository.findByDonacionId(donacion.getId())
-                .orElseThrow(() -> new IllegalStateException(
-                        "La donación confirmada no tiene un comprobante asociado: " + donacion.getId()));
+        Factura factura = facturaRepository.findByDonacionId(donacion.getId()).orElse(null);
         return respuesta(donacion, items, factura);
     }
 
@@ -109,13 +107,5 @@ public class ConsultaDonacionService {
             List<ItemDonacion> items,
             Factura factura) {
         return donacionMapper.aRespuesta(donacion, items, factura);
-    }
-
-    private Factura exigirFactura(Factura factura, Long donacionId) {
-        if (factura == null) {
-            throw new IllegalStateException(
-                    "La donación confirmada no tiene un comprobante asociado: " + donacionId);
-        }
-        return factura;
     }
 }

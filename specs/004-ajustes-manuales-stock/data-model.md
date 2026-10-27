@@ -2,7 +2,7 @@
 
 ## Ajuste
 
-Registro de negocio append-only que conserva el antes/después de cada operación manual en un lote existente. Se almacena en `ajustes_stock` y se audita con Hibernate Envers en `ajustes_stock_aud`.
+Registro de negocio que conserva el antes/después de cada operación manual en un lote existente. Se almacena en `ajustes_stock` y se audita con Hibernate Envers en `ajustes_stock_aud`; las modificaciones/bajas solo se permiten sin revisiones de stock posteriores.
 
 | Campo | Tipo lógico / SQL | Reglas |
 |---|---|---|
@@ -12,9 +12,9 @@ Registro de negocio append-only que conserva el antes/después de cada operació
 | `fechaVencimiento` | LocalDate / DATE nullable | Snapshot del lote; nulo si el stock existente no tiene vencimiento. |
 | `usuarioId` | Long / BIGINT | Obligatorio; FK a `usuarios.id`; siempre provisto desde el principal autenticado. |
 | `fechaHora` | Instant / TIMESTAMP(6) | Obligatoria e inmutable; generada por el servidor en UTC. |
-| `tipo` | enum / VARCHAR(20) | `CORRECCION` o `BAJA`. |
-| `cantidadAnterior` | BigDecimal / DECIMAL(12,3) | Obligatoria, no negativa; valor leído luego de tomar el bloqueo del lote. |
-| `cantidadNueva` | BigDecimal / DECIMAL(12,3) | Obligatoria, no negativa; saldo final escrito en `Stock`. |
+| `tipo` | enum / VARCHAR(20) | `CORRECCION` o `BAJA`; editable con auditoría. |
+| `cantidadAnterior` | BigDecimal / DECIMAL(12,3) | Obligatoria, no negativa; valor previo conservado como base para edición. |
+| `cantidadNueva` | BigDecimal / DECIMAL(12,3) | Obligatoria, no negativa; saldo final aplicado a `Stock`. |
 | `motivo` | String / longitud a definir | Obligatorio y no vacío después de recortar espacios. El usuario lo proporciona. La longitud máxima queda pendiente de confirmar antes de añadir una restricción de negocio. |
 
 ### Relaciones e instantáneas
@@ -35,12 +35,12 @@ Las dos ramas deben comprobar el resultado no negativo. El motivo se valida en e
 
 ## Invariantes y transacción
 
-1. Solo el rol `user_deposito` puede crear o leer estos registros.
+1. Solo el rol `user_deposito` puede crear, consultar, modificar o eliminar estos registros.
 2. Solo se puede ajustar un `Stock` existente; `stockId`, producto y usuario deben referenciar filas existentes.
 3. La consulta del lote se ejecuta con bloqueo pesimista de escritura antes de leer `cantidadAnterior`.
 4. Validación, actualización de `Stock` e inserción de `Ajuste` se realizan en la misma transacción. Cualquier error deja ambos datos sin cambios.
 5. El nuevo saldo no puede ser negativo; además de la validación del service, se mantiene la restricción de stock existente.
-6. La entidad no expone setters ni métodos de actualización/borrado en el modelo de escritura; `@Immutable` comunica la intención al ORM. Envers audita su inserción, pero no sustituye el historial de negocio.
+6. La edición y baja bloquean el lote y consultan revisiones Envers: cualquier modificación posterior del stock impide alterar el ajuste. Una edición aplica el nuevo resultado desde `cantidadAnterior`; una baja restaura dicho valor. Envers conserva las revisiones anteriores.
 7. El vencimiento nulo es válido porque el modelo existente de stock lo permite. El ajuste conserva ese valor. Las consultas por fecha filtran un vencimiento concreto; con parámetro omitido no se filtra por vencimiento.
 8. Un remito en borrador no reserva stock. Tras un ajuste, la confirmación existente vuelve a validar el saldo y solo descuenta si el remito puede confirmarse íntegramente.
 
@@ -59,4 +59,4 @@ El orden predeterminado será fecha/hora descendente y, como desempate estable, 
 
 ## Migración
 
-`V9__crear_ajustes_stock.sql`, después de V8, crea la tabla del evento, su tabla de Envers, restricciones de saldo/tipo, FKs e índices para filtrar por producto, fecha de vencimiento, fecha/hora, usuario y tipo. La tabla de auditoría sigue el patrón de las tablas `*_aud`: clave `(id, REV)`, `REVTYPE` y FK a `REVINFO`.
+`V9__crear_ajustes_stock.sql`, después de V8, crea la tabla del evento, su tabla de Envers, restricciones de saldo, FKs e índices para filtrar por producto, fecha de vencimiento, fecha/hora, usuario y tipo. `V10__corregir_tipo_ajuste_stock.sql` elimina la restricción de tipo mal escrita de V9 sin modificar esa migración histórica; la API limita el valor a `CORRECCION` o `BAJA` mediante el enum del DTO y la validación del service. La tabla de auditoría sigue el patrón de las tablas `*_aud`: clave `(id, REV)`, `REVTYPE` y FK a `REVINFO`.

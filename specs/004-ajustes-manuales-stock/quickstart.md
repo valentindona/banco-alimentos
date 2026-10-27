@@ -27,7 +27,9 @@ Las pruebas de servicio cubren las reglas y rollback; la prueba de concurrencia 
 5. `GET /api/ajustes` debe combinar producto, vencimiento, fechaDesde/fechaHasta, usuario y tipo; la respuesta respeta paginación y un filtro sin coincidencias da una página vacía.
 6. Un usuario institucional o de tesorería no puede registrar ni consultar: debe recibir `403` sin cambios en stock ni historial. Una petición sin autenticación recibe `401`.
 7. El ajuste a un lote de un remito `BORRADOR` debe permitirse. Si el saldo queda por debajo de lo detallado, confirmar el remito debe fallar con regla de negocio; el remito sigue en borrador y el stock conserva el saldo resultante del ajuste. Si hay suficiente saldo y el lote es elegible, se conserva el flujo de confirmación existente.
-8. La migración V9 debe crear tablas principal/audit e índices en H2. La entidad de ajuste debe registrar su revisión Envers y no debe haber rutas de edición o borrado.
+8. `PUT /api/ajustes/{ajusteId}` debe recalcular el saldo usando `cantidadAnterior` solo si el saldo actual sigue coincidiendo con `cantidadNueva` y Envers no registra revisiones posteriores del lote. Debe conservar la revisión previa y crear una nueva; cualquier conflicto deja el stock intacto.
+9. `DELETE /api/ajustes/{ajusteId}` debe restaurar `cantidadAnterior` bajo las mismas condiciones y conservar la revisión Envers de baja. Movimientos posteriores deben impedir la operación.
+10. V9 crea las tablas principal/audit, relaciones, restricciones de saldo e índices; V10 retira el constraint de tipo mal escrito sin modificar V9. La API sigue aceptando únicamente los tipos del enum (`CORRECCION` y `BAJA`). Flyway aplica ambas migraciones en H2 y MySQL.
 
 Para contratos, campos de solicitud, filtros, estados HTTP y respuesta paginada, consultar [contracts/ajustes-stock.openapi.yaml](./contracts/ajustes-stock.openapi.yaml). Para invariantes y campos persistidos, consultar [data-model.md](./data-model.md).
 

@@ -1,6 +1,7 @@
 package com.group6.BancoAlimentos.donacion.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -98,5 +99,29 @@ class ConsultaDonacionServiceTest {
         verify(donacionRepository).buscarConFiltros(
                 9L, desde, hasta, 4L, vencimientoDesde, vencimientoHasta, paginaSolicitada);
         verify(facturaRepository).findByDonacionIdIn(List.of(20L));
+    }
+
+    @Test
+    void permiteListarDonacionesSinComprobanteParaGenerarloDesdeLaInterfaz() {
+        ConsultaDonacionService servicio = new ConsultaDonacionService(
+                donacionRepository, itemDonacionRepository, facturaRepository, donacionMapper, itemDonacionMapper);
+        LocalDate fecha = LocalDate.of(2026, 10, 1);
+        Donacion donacion = Donacion.builder()
+                .id(32L)
+                .donante(Donante.builder().id(11L).nombre("Donante sin comprobante").build())
+                .fecha(fecha)
+                .build();
+        DonacionRespuesta respuesta = new DonacionRespuesta(32L, 11L, "Donante sin comprobante", fecha, List.of(), null);
+        PageRequest pagina = PageRequest.of(0, 20);
+        when(donacionRepository.buscarConFiltros(null, null, null, null, null, null, pagina))
+                .thenReturn(new PageImpl<>(List.of(donacion), pagina, 1));
+        when(itemDonacionRepository.buscarPorDonaciones(List.of(32L))).thenReturn(List.of());
+        when(facturaRepository.findByDonacionIdIn(List.of(32L))).thenReturn(List.of());
+        when(donacionMapper.aRespuesta(donacion, List.of(), null)).thenReturn(respuesta);
+
+        var resultado = servicio.listar(null, null, null, null, null, null, 0, 20);
+
+        assertEquals(1, resultado.getTotalElements());
+        assertNull(resultado.getContent().get(0).comprobante());
     }
 }

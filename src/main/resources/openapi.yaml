@@ -191,6 +191,96 @@ paths:
           $ref: "#/components/responses/ErrorProhibido"
         "422":
           $ref: "#/components/responses/ErrorReglaNegocio"
+  /remitos/{remitoId}/detalles/{detalleId}:
+    put:
+      tags: [Detalles de remito]
+      operationId: actualizarDetalleRemito
+      summary: Editar un artículo de un remito en borrador
+      x-roles: [user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/RemitoId"
+        - name: detalleId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AgregarDetalle" }
+      responses:
+        "200":
+          description: Detalle actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DetalleRemito" }
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+    delete:
+      tags: [Detalles de remito]
+      operationId: eliminarDetalleRemito
+      summary: Quitar un artículo de un remito en borrador
+      x-roles: [user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/RemitoId"
+        - name: detalleId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "204":
+          description: Detalle eliminado
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+  /remitos/{remitoId}:
+    put:
+      tags: [Remitos]
+      operationId: actualizarBorradorRemito
+      summary: Editar institución o fecha de un remito en borrador
+      x-roles: [user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/RemitoId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CrearRemito" }
+      responses:
+        "200":
+          description: Borrador actualizado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Remito" }
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+    delete:
+      tags: [Remitos]
+      operationId: eliminarBorradorRemito
+      summary: Eliminar un remito en borrador y sus artículos
+      x-roles: [user_deposito]
+      parameters:
+        - $ref: "#/components/parameters/RemitoId"
+      responses:
+        "204":
+          description: Borrador eliminado
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
   /remitos/{remitoId}/confirmacion:
     post:
       tags: [Remitos]
@@ -580,7 +670,7 @@ paths:
       tags: [Ajustes de stock]
       operationId: registrarAjusteStock
       summary: Registrar una corrección o baja de un lote
-      description: La identidad y la fecha se obtienen del principal autenticado y del servidor.
+      description: La identidad y la fecha se obtienen del principal autenticado y del servidor. El ajuste es auditable.
       x-roles: [user_deposito]
       requestBody:
         required: true
@@ -589,7 +679,7 @@ paths:
             schema: { $ref: "#/components/schemas/AjusteSolicitud" }
       responses:
         "201":
-          description: Ajuste registrado con snapshot inmutable.
+          description: Ajuste registrado con snapshot y auditoría.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AjusteRespuesta" }
@@ -599,10 +689,6 @@ paths:
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
           $ref: "#/components/responses/ErrorProhibido"
-        "404":
-          $ref: "#/components/responses/ErrorNoEncontrado"
-        "422":
-          $ref: "#/components/responses/ErrorReglaNegocio"
     get:
       tags: [Ajustes de stock]
       operationId: listarAjustesStock
@@ -645,6 +731,57 @@ paths:
           $ref: "#/components/responses/ErrorNoAutenticado"
         "403":
           $ref: "#/components/responses/ErrorProhibido"
+  /ajustes/{ajusteId}:
+    put:
+      tags: [Ajustes de stock]
+      operationId: actualizarAjusteStock
+      summary: Editar un ajuste cuando no existen movimientos posteriores en el lote
+      x-roles: [user_deposito]
+      parameters:
+        - name: ajusteId
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AjusteSolicitud" }
+      responses:
+        "200":
+          description: Ajuste actualizado con auditoría y saldo recalculado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AjusteRespuesta" }
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
+    delete:
+      tags: [Ajustes de stock]
+      operationId: eliminarAjusteStock
+      summary: Eliminar un ajuste y revertir su saldo si no hubo movimientos posteriores
+      x-roles: [user_deposito]
+      parameters:
+        - name: ajusteId
+          in: path
+          required: true
+          schema: { type: integer, format: int64, minimum: 1 }
+      responses:
+        "204":
+          description: Ajuste eliminado y saldo revertido
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
   /instituciones:
     get:
       tags: [Instituciones]
@@ -805,7 +942,7 @@ paths:
     get:
       tags: [Facturas]
       operationId: listarFacturasRecepcion
-      summary: Consultar facturas legadas y comprobantes de recepción en modo de solo lectura
+      summary: Consultar facturas legadas y comprobantes de recepción
       description: Los comprobantes de donación no son fiscales ni cobrables.
       x-roles: [user_deposito]
       parameters:
@@ -845,6 +982,37 @@ paths:
           $ref: "#/components/responses/ErrorProhibido"
         "405":
           $ref: "#/components/responses/ErrorMetodoNoPermitido"
+  /facturas/generacion:
+    post:
+      tags: [Facturas]
+      operationId: generarComprobanteDonacion
+      summary: Generar el comprobante faltante de una donación
+      description: Si ya existe, devuelve el comprobante actual sin duplicarlo. Los comprobantes se emiten automáticamente al registrar donaciones.
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GenerarFacturaSolicitud" }
+      responses:
+        "201":
+          description: Comprobante generado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FacturaConsulta" }
+        "200":
+          description: Comprobante preexistente devuelto sin duplicarlo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FacturaConsulta" }
+        "401":
+          $ref: "#/components/responses/ErrorNoAutenticado"
+        "403":
+          $ref: "#/components/responses/ErrorProhibido"
+        "404":
+          $ref: "#/components/responses/ErrorNoEncontrado"
+        "422":
+          $ref: "#/components/responses/ErrorReglaNegocio"
   /notificaciones:
     get:
       tags: [Notificaciones]
@@ -993,6 +1161,12 @@ components:
     EstadoRemito:
       type: string
       enum: [BORRADOR, CONFIRMADO]
+    GenerarFacturaSolicitud:
+      type: object
+      additionalProperties: false
+      required: [donacionId]
+      properties:
+        donacionId: { type: integer, format: int64, minimum: 1 }
     EstadoStock:
       type: string
       enum: [DISPONIBLE, VENCIDO, SIN_VENCIMIENTO]
@@ -1210,6 +1384,10 @@ components:
         items:
           type: array
           items: { $ref: "#/components/schemas/ItemDonacion" }
+        comprobante:
+          anyOf:
+            - $ref: "#/components/schemas/ComprobanteRecepcion"
+            - type: "null"
     DonacionConfirmada:
       allOf:
         - $ref: "#/components/schemas/Donacion"

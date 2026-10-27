@@ -27,7 +27,7 @@ public class DonacionMapper {
                 donacion.getDonante().getNombre(),
                 donacion.getFecha(),
                 detalles,
-                new ComprobanteRespuesta(
+                factura == null ? null : new ComprobanteRespuesta(
                         factura.getId(),
                         factura.getNumero(),
                         donacion.getId(),

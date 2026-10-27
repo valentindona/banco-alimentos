@@ -454,6 +454,45 @@ paths:
           $ref: "#/components/responses/NoAutenticado"
         "403":
           $ref: "#/components/responses/AccesoDenegado"
+  /facturas/generacion:
+    post:
+      tags: [Facturas]
+      operationId: generarComprobanteDonacion
+      summary: Generar o recuperar el comprobante de una donación
+      description: Genera comprobantes faltantes; si ya existe uno, devuelve el existente sin duplicarlo.
+      x-roles: [user_deposito]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [donacionId]
+              properties:
+                donacionId:
+                  type: integer
+                  format: int64
+                  minimum: 1
+      responses:
+        "201":
+          description: Comprobante generado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Factura"
+        "200":
+          description: Comprobante existente devuelto sin duplicarlo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Factura"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/AccesoDenegado"
+        "404":
+          $ref: "#/components/responses/RecursoInexistente"
 components:
   securitySchemes:
     bearerAuth:
@@ -603,6 +642,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ItemDonacion"
+        comprobante:
+          anyOf:
+            - $ref: "#/components/schemas/Comprobante"
+            - type: "null"
       required: [id, donanteId, donanteNombre, fecha, items]
     DonacionConfirmada:
       allOf:
